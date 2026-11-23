@@ -1,4 +1,4 @@
-# DarkWatch AI 0.2.1 – Kısa Kullanım Kılavuzu
+# DarkWatch AI 0.2.0 – Kısa Kullanım Kılavuzu
 
 DarkWatch AI (eski adıyla DarkWeb Monitor), yapay zekâ destekli, açık kaynak bir darknet izleme ve tehdit istihbaratı platformudur.
 
