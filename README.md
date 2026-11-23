@@ -60,11 +60,14 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 1. Download `darkweb-monitor-0.2.0-<windows|linux|macos>-<arch>.zip` from
    [Releases](https://github.com/smyrna-pergamum/darkwatch-ai/releases) and extract it.
 2. Start Tor (the `tor` service on port 9050, or Tor Browser on 9150 → set `TOR_PROXY_PORT=9150` in `.env`).
-3. Run:
-   ```bash
-   DarkWebMonitor init          # Windows: DarkWebMonitor.exe init
-   DarkWebMonitor serve         # open http://127.0.0.1:8000
-   ```
+3. Double-click `DarkWebMonitor.exe` (Windows) or run `./DarkWebMonitor` (Linux/macOS) with no arguments.
+   It creates the database, starts the dashboard on http://127.0.0.1:8000 and opens your browser.
+   Keep the console window open while you use it; close it (or press Ctrl+C) to stop.
+   The same executable is also the CLI, e.g. `DarkWebMonitor status` or `DarkWebMonitor serve --port 8080`.
+
+   On macOS, if Gatekeeper blocks the unsigned app: `xattr -dr com.apple.quarantine darkweb-monitor-0.1.0`.
+   On Windows, SmartScreen may warn about the unsigned exe: *More info → Run anyway*.
+
 Configuration lives in the `.env` file next to the executable; data is stored in `data/` beside it.
 
 ### Option 2 — From source
