@@ -4,12 +4,17 @@ on:
     tags: ["v*"]
   release:
     types: [published]   # also when the release/tag is created in the GitHub web UI
+  workflow_dispatch:     # rebuild assets for an existing tag
+    inputs:
+      tag:
+        description: "Existing tag to build, e.g. v0.1.0"
+        required: true
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || github.ref_name }}
+  group: release-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -17,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.release.tag_name || inputs.tag || github.ref }}" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install -r requirements-dev.txt
@@ -25,11 +31,13 @@ jobs:
   build:
     needs: test
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-14]
+        os: [windows-latest, ubuntu-22.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.release.tag_name || inputs.tag || github.ref }}" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install -r requirements.txt pyinstaller
@@ -40,15 +48,18 @@ jobs:
           path: dist/*.zip
 
   publish:
-    needs: build
+    needs: [test, build]
+    # publish whatever platforms built, as long as tests passed
+    if: ${{ !cancelled() && needs.test.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.release.tag_name || inputs.tag || github.ref }}" }
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
       - name: Version
         run: |
-          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          TAG="${{ github.event.release.tag_name || inputs.tag || github.ref_name }}"
           echo "TAG=$TAG" >> "$GITHUB_ENV"
           echo "VER=${TAG#v}" >> "$GITHUB_ENV"
       - name: Source archive
