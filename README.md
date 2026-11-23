@@ -74,8 +74,16 @@ git clone https://github.com/smyrna-pergamum/darkwatch-ai.git && cd darkwatch-ai
 cp .env.example .env
 pip install -r requirements.txt
 python -m darkweb_monitor.cli init
-python -m darkweb_monitor.cli watch add domain example.com --severity high
 python -m darkweb_monitor.cli serve            # http://127.0.0.1:8000
+```
+
+Then create your organization in the dashboard (*Organizations → + New organization*) or via the API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/orgs -H "Content-Type: application/json" -d '{
+  "name": "Example Corp", "sector": "finance",
+  "assets": [{"asset_type": "domain", "value": "example.com"},
+             {"asset_type": "brand", "value": "Example"}]}'
 ```
 
 ### Option 3 — Docker
@@ -191,14 +199,24 @@ evidence content.
 
 ## Screenshots
 
+<sub>Shown with demo data.</sub>
+
 <table>
+<tr>
+<td width="50%"><img src="docs/images/orgs.png" alt="Organizations"><br><sub><b>Organizations</b> — tenants with their risk score, assets and open alerts</sub></td>
+<td width="50%"><img src="docs/images/actors.png" alt="Threat actors"><br><sub><b>Threat actors</b> — forum authors and ransomware groups, linked by shared contacts</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/graph.png" alt="Entity graph"><br><sub><b>Entity graph</b> — organizations, assets, alerts, sites, indicators and actors</sub></td>
+<td width="50%"><img src="docs/images/evidence.png" alt="Evidence"><br><sub><b>Evidence</b> — SHA-256 snapshots with a verifiable chain of custody</sub></td>
+</tr>
 <tr>
 <td width="50%"><img src="docs/images/analyst.png" alt="AI analyst"><br><sub><b>AI Analyst</b> — live transcript, tool calls, approvals and the final report</sub></td>
 <td width="50%"><img src="docs/images/learning.png" alt="Learning"><br><sub><b>Learning</b> — AI agreement, lessons, noise rules and regression tests</sub></td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/images/ai-models.png" alt="AI & Models"><br><sub><b>AI & Models</b> — providers, privacy routing and local GGUF models</sub></td>
-<td width="50%"><img src="docs/images/overview.png" alt="Overview"><br><sub><b>Overview</b> — open alerts, activity and the latest AI assessment</sub></td>
+<td width="50%"><img src="docs/images/overview.png" alt="Overview"><br><sub><b>Overview</b> — open alerts, activity, organization risk, threat classes and actors</sub></td>
 </tr>
 </table>
 
