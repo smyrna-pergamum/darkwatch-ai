@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/) (0.x = developer preview: breaking
 changes possible between minor versions).
 
+## [0.2.1] - 2026-11-23
+
+### Fixed
+- Release bundles: double-clicking `DarkWebMonitor.exe` (or running it without arguments) starts the dashboard on 127.0.0.1 and opens the browser again; on an error the console window stays open so the message can be read. 0.2.0 only printed the CLI help and closed, because this fix from the 0.1.0 bundle had never been merged into `main`.
+
 ## [0.2.0] - 2026-11-23 — DarkWatch AI
 
 The project is now presented as **DarkWatch AI** (package, CLI and repository names are unchanged).

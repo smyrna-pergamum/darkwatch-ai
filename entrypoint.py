@@ -34,7 +34,7 @@ def _interactive() -> int:
 
     host, port = "127.0.0.1", int(settings.API_PORT)
     url = f"http://{host}:{port}"
-    print(f"DarkWeb Monitor {__version__}")
+    print(f"DarkWatch AI {__version__}")
     if _port_open(host, port):
         print(f"Already running (or port {port} is in use) - opening {url}")
         webbrowser.open(url)
@@ -70,7 +70,7 @@ def run() -> int:
         traceback.print_exc()
         code = 1
     if code:
-        print(f"\nDarkWeb Monitor stopped with an error (exit code {code}).")
+        print(f"\nDarkWatch AI stopped with an error (exit code {code}).")
         _pause()
     return code
 

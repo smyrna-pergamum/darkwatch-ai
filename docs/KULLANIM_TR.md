@@ -1,9 +1,9 @@
-# DarkWatch AI 0.2.0 – Kısa Kullanım Kılavuzu
+# DarkWatch AI 0.2.1 – Kısa Kullanım Kılavuzu
 
 DarkWatch AI (eski adıyla DarkWeb Monitor), yapay zekâ destekli, açık kaynak bir darknet izleme ve tehdit istihbaratı platformudur.
 
 ## Hazır paket (Windows / Linux / macOS, Python gerekmez)
-1. [Releases](https://github.com/smyrna-pergamum/darkweb-monitor/releases) sayfasından işletim sisteminize uygun zip'i indirip bir klasöre çıkarın.
+1. [Releases](https://github.com/smyrna-pergamum/darkwatch-ai/releases) sayfasından işletim sisteminize uygun zip'i indirip bir klasöre çıkarın.
 2. Tor'u başlatın (Tor Browser kullanıyorsanız `.env` içinde `TOR_PROXY_PORT=9150`).
 3. `DarkWebMonitor.exe` dosyasına çift tıklayın. Veritabanı oluşturulur, panel `http://127.0.0.1:8000` adresinde açılır ve tarayıcı kendiliğinden açılır.
 4. Kullanırken konsol penceresini açık tutun; kapatınca program durur. Hata olursa pencere kapanmaz, mesajı okuyabilirsiniz.

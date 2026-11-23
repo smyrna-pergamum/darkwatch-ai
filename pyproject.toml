@@ -1,6 +1,6 @@
 [project]
 name = "darkweb-monitor"
-version = "0.2.0"
+version = "0.2.1"
 description = "DarkWatch AI - self-hosted, AI-powered darknet monitoring & threat intelligence platform"
 requires-python = ">=3.10"
 license = { text = "MIT" }
