@@ -77,16 +77,16 @@ def propose(min_labeled: int = 3, min_fp_rate: float = 0.6, max_keywords: int = 
                     continue
                 lab = labels.get(a.id)
                 toks = set()
-                for m in ms:
+                for m in ms:  # page context around the match only - alert titles are boilerplate
                     toks |= set(tokens(m.get("context") or ""))
-                toks |= set(tokens(a.title or ""))
                 toks.discard(st["value"].lower())
                 if lab in ("false_positive", "benign"):
                     fp_ctx.update(toks)
                     hosts[urlparse(a.url or "").hostname or ""] += 1
                 elif lab == "true_positive":
                     tp_ctx.update(toks)
-            kws = [t for t, c in fp_ctx.most_common(40) if c >= 2 and t not in tp_ctx and not t.isdigit()][:max_keywords]
+            ranked = sorted(fp_ctx.items(), key=lambda kv: (-kv[1], kv[0]))  # deterministic order
+            kws = [t for t, c in ranked if c >= 2 and t not in tp_ctx and not t.isdigit()][:max_keywords]
             host = ""
             if not kws and hosts and st["tp"] == 0:
                 h, c = hosts.most_common(1)[0]
