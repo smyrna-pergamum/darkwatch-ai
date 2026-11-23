@@ -1,0 +1,57 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check . && pytest -q
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-22.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt pyinstaller
+      - run: python packaging/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: dist/*.zip
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Source archive
+        run: git archive --format=zip --prefix=darkweb-monitor-${GITHUB_REF_NAME#v}/ -o dist/darkweb-monitor-${GITHUB_REF_NAME#v}-src.zip HEAD
+      - name: Checksums
+        run: cd dist && sha256sum *.zip > SHA256SUMS.txt
+      - name: Release notes from CHANGELOG
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          awk -v v="$v" '/^## \[/{p = index($0, "[" v "]") > 0; next} p' CHANGELOG.md > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          files: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
