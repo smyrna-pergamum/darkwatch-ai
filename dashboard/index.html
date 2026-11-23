@@ -1,645 +1,1133 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>DarkWeb Monitor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-/* hallmark v2.0.0 · floor applied · theme: custom (inferred: utilitarian/technical, dark slate + cyan signal) */
-:root {
-  --bg: #0b0f14;
-  --bg-2: #11161d;
-  --surface: #161b22;
-  --surface-2: #1c222b;
-  --border: #2a313c;
-  --border-2: #39424f;
-  --text: #e6edf3;
-  --text-2: #b8c2cc;
-  --muted: #7d8793;
-  --accent: #39d0c4;
-  --accent-2: #2aa89e;
-  --accent-soft: rgba(57, 208, 196, 0.12);
-  --danger: #f85149;
-  --warn: #d29922;
-  --ok: #2ea043;
-  --info: #58a6ff;
-  --font: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --mono: "Geist Mono", ui-monospace, monospace;
-  --radius: 8px;
-  --radius-sm: 4px;
-  --gap: 16px;
-  --container: 1280px;
+:root{
+  --bg:#0b0d12;--panel:#12151c;--panel2:#171b24;--line:#232836;--line2:#2d3344;
+  --text:#e6e8ee;--muted:#8b93a7;--dim:#5d6578;
+  --accent:#7c5cff;--accent2:#a28bff;--ok:#2fbf71;--warn:#f5b841;--bad:#ff5d5d;
+  --low:#4fb3ff;--medium:#f5b841;--high:#ff8a3d;--critical:#ff4d6d;
+  --radius:10px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
-* { box-sizing: border-box; }
-html, body { overflow-x: clip; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text);
-  background: var(--bg);
-  -webkit-font-smoothing: antialiased;
-}
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; }
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-.wrap { max-width: var(--container); margin: 0 auto; padding: 0 var(--gap); }
-
-/* layout */
-.app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
-.sidebar {
-  background: var(--bg-2);
-  border-right: 1px solid var(--border);
-  padding: 18px 14px;
-  position: sticky; top: 0; height: 100vh;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-.brand .mark { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: #0b0f14; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
-.brand .name { font-weight: 600; font-size: 15px; }
-.brand .sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: var(--radius-sm);
-  color: var(--text-2); font-size: 13px; font-weight: 500;
-  border: 1px solid transparent;
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
-}
-.nav-item:hover { background: var(--surface); color: var(--text); }
-.nav-item.active { background: var(--accent-soft); color: var(--accent); border-color: rgba(57,208,196,0.25); }
-.nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
-.nav-item.active .dot { background: var(--accent); }
-.sidebar .status { margin-top: auto; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 12px; }
-.status-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
-.status-row .k { color: var(--muted); }
-.status-row .v { font-family: var(--mono); font-size: 11px; }
-.status-row .v.ok { color: var(--ok); }
-.status-row .v.bad { color: var(--danger); }
-
-.main { padding: var(--gap) 24px 40px; }
-.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--gap); }
-.topbar h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-.topbar .meta { color: var(--muted); font-size: 12px; font-family: var(--mono); }
-.topbar .actions { display: flex; gap: 8px; }
-
-button.primary {
-  background: var(--accent); color: #0b0f14; border: 1px solid var(--accent);
-  padding: 8px 14px; border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
-  transition: background-color 120ms ease, transform 120ms ease;
-}
-button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
-button.primary:active { transform: translateY(1px); }
-button.ghost {
-  background: transparent; color: var(--text-2); border: 1px solid var(--border);
-  padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px;
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
-}
-button.ghost:hover { background: var(--surface); color: var(--text); border-color: var(--border-2); }
-input, select, textarea {
-  background: var(--surface); border: 1px solid var(--border); color: var(--text);
-  padding: 8px 10px; border-radius: var(--radius-sm); font-size: 13px;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
-}
-input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-/* sections */
-.section { display: none; }
-.section.active { display: block; }
-.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-.section-head h2 { font-size: 16px; font-weight: 600; margin: 0; }
-.section-head .hint { color: var(--muted); font-size: 12px; }
-
-/* stat cards */
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: var(--gap); }
-.stat {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px 16px; position: relative; overflow: hidden;
-}
-.stat .label { color: var(--muted); font-size: 11px; text-transform: none; letter-spacing: 0; font-weight: 500; }
-.stat .value { font-size: 26px; font-weight: 700; margin-top: 4px; font-family: var(--mono); letter-spacing: -0.02em; }
-.stat .delta { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.stat.accent .value { color: var(--accent); }
-
-/* charts */
-.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: var(--gap); }
-.chart-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px;
-}
-.chart-card h3 { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: var(--text-2); }
-.chart-wrap { position: relative; height: 220px; }
-
-/* cards / panels */
-.panel {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px; margin-bottom: var(--gap);
-}
-.panel h3 { font-size: 13px; font-weight: 600; margin: 0 0 12px; color: var(--text-2); }
-
-/* tables */
-.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
-th { color: var(--muted); font-weight: 500; font-size: 11px; background: var(--bg-2); position: sticky; top: 0; }
-tr:last-child td { border-bottom: 0; }
-tr:hover td { background: var(--surface-2); }
-td.mono { font-family: var(--mono); font-size: 12px; color: var(--text-2); }
-td.trunc { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* severity badges */
-.sev { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--mono); text-transform: lowercase; }
-.sev.critical { background: rgba(248,81,73,0.18); color: var(--danger); border: 1px solid rgba(248,81,73,0.35); }
-.sev.high { background: rgba(210,153,34,0.18); color: #e3b341; border: 1px solid rgba(210,153,34,0.35); }
-.sev.medium { background: rgba(88,166,255,0.14); color: var(--info); border: 1px solid rgba(88,166,255,0.3); }
-.sev.low { background: rgba(46,160,67,0.14); color: var(--ok); border: 1px solid rgba(46,160,67,0.3); }
-
-/* forms */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.form-grid .full { grid-column: 1 / -1; }
-.form-actions { display: flex; gap: 8px; margin-top: 10px; }
-.field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
-
-/* run summary */
-.summary-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.summary-text { color: var(--text); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
-.summary-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.summary-cols h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
-.summary-cols ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12px; line-height: 1.6; }
-.summary-cols li { margin-bottom: 4px; }
-.summary-cols .none { color: var(--muted); font-size: 12px; }
-@media (max-width: 700px) { .summary-cols { grid-template-columns: 1fr; } }
-
-/* alert feed */
-.alert-item {
-  border-left: 3px solid var(--border-2); padding: 10px 12px; margin-bottom: 8px;
-  background: var(--bg-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-.alert-item.critical { border-left-color: var(--danger); }
-.alert-item.high { border-left-color: #e3b341; }
-.alert-item.medium { border-left-color: var(--info); }
-.alert-item.low { border-left-color: var(--ok); }
-.alert-item .title { font-weight: 600; font-size: 13px; }
-.alert-item .desc { color: var(--text-2); font-size: 12px; margin-top: 2px; }
-.alert-item .meta { color: var(--muted); font-size: 11px; font-family: var(--mono); margin-top: 4px; }
-
-/* modal */
-.modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-  display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px;
-}
-.modal-backdrop.open { display: flex; }
-.modal {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  max-width: 760px; width: 100%; max-height: 80vh; overflow: auto; padding: 20px;
-}
-.modal h3 { margin: 0 0 10px; font-size: 15px; }
-.modal pre { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 12px; color: var(--text-2); background: var(--bg-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 50vh; overflow: auto; }
-
-/* empty state */
-.empty { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 13px; }
-.empty .big { font-size: 28px; margin-bottom: 6px; opacity: 0.5; }
-
-/* responsive */
-@media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
-  .sidebar .status { margin-top: 0; width: 100%; }
-  .stats { grid-template-columns: repeat(2, 1fr); }
-  .charts { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent2);text-decoration:none}
+button{font:inherit;white-space:nowrap;cursor:pointer;border-radius:8px;border:1px solid var(--line2);background:var(--panel2);color:var(--text);padding:7px 12px;transition:.15s}
+button:hover{border-color:var(--accent);background:#1d2130}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:#6a49f5}
+button.ghost{background:transparent}
+button.danger{border-color:#5a2730;color:#ff9aa6}
+button.sm{padding:4px 9px;font-size:12px}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;color:var(--text);background:#0e1117;border:1px solid var(--line2);border-radius:8px;padding:8px 10px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:70px}
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+.app{display:grid;grid-template-columns:232px 1fr;height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 14px;font-weight:700;letter-spacing:.2px}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#2b1f66);display:grid;place-items:center;font-size:15px}
+.brand small{display:block;font-weight:500;color:var(--dim);font-size:11px}
+nav{padding:6px 10px;flex:1}
+nav .grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin:14px 10px 6px}
+nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--muted);margin-bottom:1px}
+nav a:hover{background:var(--panel2);color:var(--text)}
+nav a.active{background:#1c1a33;color:#fff}
+nav a .ic{width:18px;text-align:center;opacity:.9}
+nav a .badge{margin-left:auto;background:var(--line2);color:var(--text);border-radius:10px;padding:0 7px;font-size:11px;min-width:20px;text-align:center}
+nav a .badge.hot{background:var(--critical);color:#fff}
+.side-foot{padding:12px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
+main{display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid var(--line);background:rgba(11,13,18,.85);backdrop-filter:blur(6px)}
+header h1{font-size:17px;margin:0;font-weight:650}
+header .sub{color:var(--dim);font-size:12px}
+.search{margin-left:auto;position:relative;width:min(360px,40vw)}
+.search input{padding-left:30px}
+.search::before{content:"⌕";position:absolute;left:10px;top:7px;color:var(--dim);font-size:15px}
+.pills{display:flex;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;border:1px solid var(--line2);font-size:12px;color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block;flex:none}
+.dot.ok{background:var(--ok);box-shadow:0 0 8px rgba(47,191,113,.6)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.content{flex:1;overflow:auto;padding:22px}
+.view{display:none;animation:fade .18s ease}.view.active{display:block}
+@keyframes fade{from{opacity:.4;transform:translateY(3px)}to{opacity:1}}
+.grid{display:grid;gap:16px}.grid>*{min-width:0}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card h3{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
+.card h3 .right{margin-left:auto;font-weight:400}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.kpi .l{color:var(--muted);font-size:12.5px}
+.kpi .s{font-size:12px;color:var(--dim);margin-top:6px}
+.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--line2)}
+.cols-2{grid-template-columns:2fr 1fr}.cols-3{grid-template-columns:repeat(3,1fr)}.cols-11{grid-template-columns:1fr 1fr}
+@media(max-width:1100px){.cols-2,.cols-3,.cols-11{grid-template-columns:1fr}}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.toolbar .grow{flex:1}
+.toolbar input,.toolbar select{width:auto;min-width:150px}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{padding:5px 11px;border-radius:20px;border:1px solid var(--line2);font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;background:transparent}
+.chip.on{background:#231f3d;border-color:var(--accent);color:#fff}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);font-weight:600;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr.row{cursor:pointer}tr.row:hover td{background:#151925}
+.table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:auto}
+.mono{font-family:var(--mono);font-size:12.5px}
+.trunc{max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muted{color:var(--muted)}.dim{color:var(--dim)}.small{font-size:12px}
+.sev{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:12px;font-size:11.5px;font-weight:600;text-transform:capitalize;white-space:nowrap}
+.sev::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.sev.low{color:var(--low);background:rgba(79,179,255,.1)}.sev.medium{color:var(--medium);background:rgba(245,184,65,.1)}
+.sev.high{color:var(--high);background:rgba(255,138,61,.12)}.sev.critical{color:var(--critical);background:rgba(255,77,109,.13)}
+.tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;background:var(--panel2);border:1px solid var(--line2);color:var(--muted);margin:1px 3px 1px 0;white-space:nowrap}
+.tag.acc{border-color:#3d3270;color:var(--accent2)}.tag.ok{border-color:#1f4d36;color:#6fdfa0}.tag.bad{border-color:#5a2730;color:#ff9aa6}.tag.warn{border-color:#5a4520;color:#f5cf7a}
+.empty{padding:40px 20px;text-align:center;color:var(--dim)}
+.empty .big{font-size:15px;color:var(--muted);margin-bottom:6px}
+.list .item{display:flex;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.list .item:last-child{border:0}
+.list .item:hover{background:#151925}
+.list .item .t{font-weight:550}
+.bar{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+svg text{fill:var(--dim);font-size:10px}
+.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:40}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(720px,96vw);background:var(--panel);border-left:1px solid var(--line);z-index:41;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column}
+.drawer.open{transform:none}.drawer-bg.open{display:block}
+.drawer .dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
+.drawer .dh h2{margin:0;font-size:16px;word-break:break-word}
+.drawer .db{padding:18px 20px;overflow:auto;flex:1}
+.drawer .df{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.section-t{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);margin:18px 0 8px}
+.pre{white-space:pre-wrap;word-break:break-word;background:#0e1117;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;max-height:420px;overflow:auto}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px}
+.kv div:nth-child(odd){color:var(--dim)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:50;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:14px;width:min(640px,100%);max-height:92vh;overflow:auto}
+.modal .mh{padding:16px 20px;border-bottom:1px solid var(--line);font-weight:650;display:flex}
+.modal .mb{padding:18px 20px}
+.modal .mf{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.form{display:grid;gap:14px}.form .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg .opt{border:1px solid var(--line2);border-radius:10px;padding:10px;cursor:pointer}
+.seg .opt b{display:block;font-size:13px;margin-bottom:2px}.seg .opt span{font-size:11.5px;color:var(--muted)}
+.seg .opt.on{border-color:var(--accent);background:#1c1a33}
+.hint{font-size:11.5px;color:var(--dim);margin-top:4px}
+.toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:60}
+.toast{background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:8px;min-width:240px;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.35);animation:fade .2s}
+.toast.err{border-left-color:var(--bad)}.toast.ok{border-left-color:var(--ok)}
+.timeline{border-left:2px solid var(--line2);margin-left:6px;padding-left:16px}
+.timeline .ev{position:relative;padding:4px 0 12px}
+.timeline .ev::before{content:"";position:absolute;left:-22px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--panel)}
+.timeline .ev.stop::before{background:var(--warn)}
+.task{display:flex;gap:14px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:10px}
+.task .ic{width:36px;height:36px;border-radius:9px;background:var(--panel2);display:grid;place-items:center;font-size:17px;flex:none}
+.task .body{flex:1;min-width:0}
+.task .acts{display:flex;gap:6px;flex:none}
+.src{display:flex;flex-direction:column;gap:8px}
+.switch{position:relative;width:34px;height:19px;flex:none;display:inline-block}
+.switch input{display:none}
+.switch span{position:absolute;inset:0;background:var(--line2);border-radius:20px;transition:.15s;cursor:pointer}
+.switch span::after{content:"";position:absolute;left:2px;top:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.15s}
+.switch input:checked+span{background:var(--accent)}.switch input:checked+span::after{left:17px}
+.progress{height:3px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress span{display:block;height:100%;width:35%;background:var(--accent);animation:prog 1.2s infinite ease-in-out}
+@keyframes prog{0%{margin-left:-35%}100%{margin-left:100%}}
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+.notice{padding:10px 14px;border-radius:8px;border:1px solid #5a4520;background:rgba(245,184,65,.06);color:#f5cf7a;font-size:13px;margin-bottom:14px}
+.chat{display:grid;grid-template-columns:320px 1fr;gap:16px;height:calc(100vh - 150px)}
+@media(max-width:1100px){.chat{grid-template-columns:1fr;height:auto}}
+.sess-list{overflow:auto}.sess-list .item{padding:10px;border-radius:8px;border:1px solid transparent;margin-bottom:4px;cursor:pointer}
+.sess-list .item:hover{background:#151925}.sess-list .item.on{border-color:var(--accent);background:#1c1a33}
+.transcript{display:flex;flex-direction:column;min-height:0}
+.tr-body{flex:1;overflow:auto;padding:4px 4px 12px}
+.msg{margin:10px 0;max-width:900px}
+.msg.user{background:#1c1a33;border:1px solid #2e2758;border-radius:10px;padding:10px 12px;align-self:flex-end;max-width:80%}
+.msg.ai{padding:2px 0}
+.msg .who{font-size:11px;color:var(--dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.tcall{border:1px solid var(--line2);border-radius:8px;margin:6px 0;background:#0e1117}
+.tcall summary{cursor:pointer;padding:7px 10px;font-size:12.5px;display:flex;gap:8px;align-items:center;list-style:none}
+.tcall summary::-webkit-details-marker{display:none}
+.tcall .tb{padding:0 10px 10px}.tcall pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:11.5px;color:var(--muted);max-height:300px;overflow:auto}
+.report{border:1px solid #3d3270;background:linear-gradient(180deg,#1a1730,#12151c);border-radius:12px;padding:14px;margin:12px 0}
+.conf{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;width:120px;display:inline-block;vertical-align:middle}
+.conf span{display:block;height:100%;background:var(--accent)}
+.composer{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.composer textarea{min-height:44px;height:44px}
+.notice.info{border-color:#2e3d63;background:rgba(79,179,255,.06);color:#9ccfff}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs .tab{padding:7px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+.tabs .tab.on{color:#fff;border-color:var(--accent)}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px;color:var(--dim);font-size:12px}
 </style>
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="mark">D</div>
-      <div>
-        <div class="name">DarkWeb Monitor</div>
-        <div class="sub">v0.1 · local dev</div>
-      </div>
-    </div>
-    <a class="nav-item active" data-view="overview"><span class="dot"></span>Overview</a>
-    <a class="nav-item" data-view="targets"><span class="dot"></span>Targets</a>
-    <a class="nav-item" data-view="crawl"><span class="dot"></span>Crawl</a>
-    <a class="nav-item" data-view="pages"><span class="dot"></span>Pages</a>
-    <a class="nav-item" data-view="iocs"><span class="dot"></span>IOCs</a>
-    <a class="nav-item" data-view="alerts"><span class="dot"></span>Alerts</a>
-    <div class="status" id="status-box">
-      <div class="status-row"><span class="k">Tor proxy</span><span class="v" id="st-tor">—</span></div>
-      <div class="status-row"><span class="k">AI routing</span><span class="v" id="st-ai">—</span></div>
-      <div class="status-row"><span class="k">Local model</span><span class="v" id="st-model">—</span></div>
-      <div class="status-row"><span class="k">Cloud</span><span class="v" id="st-cloud">—</span></div>
-    </div>
+  <aside>
+    <div class="brand"><div class="logo">◉</div><div>DarkWeb Monitor<small id="ver">v2</small></div></div>
+    <nav id="nav">
+      <div class="grp">Monitor</div>
+      <a data-view="overview" class="active"><span class="ic">▦</span>Overview</a>
+      <a data-view="alerts"><span class="ic">⚑</span>Alerts<span class="badge" id="b-alerts">0</span></a>
+      <a data-view="analyst"><span class="ic">◈</span>AI Analyst<span class="badge" id="b-approvals" style="display:none">0</span></a>
+      <a data-view="tasks"><span class="ic">✦</span>AI Tasks<span class="badge" id="b-tasks">0</span></a>
+      <a data-view="learning"><span class="ic">❋</span>Learning</a>
+      <div class="grp">Collection</div>
+      <a data-view="targets"><span class="ic">◎</span>Targets</a>
+      <a data-view="runs"><span class="ic">↻</span>Crawl runs<span class="badge" id="b-runs" style="display:none">0</span></a>
+      <a data-view="sources"><span class="ic">⇄</span>Intel sources</a>
+      <a data-view="watchlist"><span class="ic">☰</span>Watchlist</a>
+      <div class="grp">Data</div>
+      <a data-view="pages"><span class="ic">▤</span>Pages</a>
+      <a data-view="indicators"><span class="ic">⌗</span>Indicators</a>
+      <div class="grp">Admin</div>
+      <a data-view="aimodels"><span class="ic">⚛</span>AI &amp; Models</a>
+      <a data-view="system"><span class="ic">⚙</span>System</a>
+    </nav>
+    <div class="side-foot">Passive, authorised, defensive use only.<br><span class="kbd">/</span> search · <span class="kbd">N</span> new crawl</div>
   </aside>
+  <main>
+    <header>
+      <div><h1 id="v-title">Overview</h1><div class="sub" id="v-sub">Threat picture across all sources</div></div>
+      <div class="search"><input id="gsearch" placeholder="Search pages, indicators, alerts…" autocomplete="off"></div>
+      <div class="pills">
+        <span class="pill" id="p-tor" title="Tor"><span class="dot"></span>Tor</span>
+        <span class="pill" id="p-ai" title="AI"><span class="dot"></span>AI</span>
+        <span class="pill" id="p-sched" title="Scheduler"><span class="dot"></span>Scheduler</span>
+      </div>
+      <button class="primary" id="btn-newcrawl">+ New crawl</button>
+    </header>
+    <div class="content">
 
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <h1 id="view-title">Overview</h1>
-        <div class="meta" id="last-refresh">—</div>
-      </div>
-      <div class="actions">
-        <button class="ghost" onclick="refreshAll()">Refresh</button>
-      </div>
+      <!-- OVERVIEW -->
+      <section class="view active" id="view-overview">
+        <div id="ov-notice"></div>
+        <div class="grid kpis" id="kpis"></div>
+        <div class="grid cols-2" style="margin-top:16px">
+          <div class="card"><h3>Activity <span class="right small dim" id="ov-range">last 14 days</span></h3><div id="ov-chart"></div>
+            <div class="legend"><span><i style="background:var(--critical)"></i>Alerts</span><span><i style="background:var(--accent)"></i>New indicators</span><span><i style="background:#2c3550"></i>Pages crawled</span></div></div>
+          <div class="card"><h3>Open alerts by severity</h3><div id="ov-sev"></div>
+            <div class="section-t">By source</div><div id="ov-src"></div></div>
+        </div>
+        <div class="grid cols-11" style="margin-top:16px">
+          <div class="card"><h3>Latest alerts <a class="right small" data-goto="alerts">View all →</a></h3><div class="list" id="ov-alerts"></div></div>
+          <div class="card"><h3>Latest AI assessment <a class="right small" data-goto="runs">Runs →</a></h3><div id="ov-run"></div>
+            <div class="section-t">Active runs</div><div id="ov-active"></div></div>
+        </div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="view" id="view-alerts">
+        <div class="toolbar">
+          <div class="chips" id="al-status">
+            <span class="chip on" data-v="open">Open</span><span class="chip" data-v="new">New</span><span class="chip" data-v="acknowledged">Acknowledged</span>
+            <span class="chip" data-v="resolved">Resolved</span><span class="chip" data-v="false_positive">False positive</span><span class="chip" data-v="">All</span>
+          </div>
+          <select id="al-sev"><option value="">Any severity</option><option value="critical">Critical</option><option value="high,critical">High+</option><option value="medium,high,critical">Medium+</option><option value="low">Low</option></select>
+          <select id="al-source"><option value="">Any source</option><option value="crawler">Crawler</option><option value="hibp">HIBP</option><option value="intelx">IntelX</option><option value="ransomware">Ransomware sites</option><option value="ahmia">Ahmia</option></select>
+          <input id="al-q" placeholder="Filter text…" class="grow">
+        </div>
+        <div class="toolbar" id="al-bulk" style="display:none">
+          <span class="muted small" id="al-selcount"></span>
+          <button class="sm" data-bulk="acknowledged">Acknowledge</button><button class="sm" data-bulk="resolved">Resolve</button><button class="sm" data-bulk="false_positive">False positive</button>
+        </div>
+        <div class="table-wrap"><table id="t-alerts"></table></div>
+        <div class="pager" id="al-pager"></div>
+      </section>
+
+      <!-- TASKS -->
+      <section class="view" id="view-tasks">
+        <div class="toolbar"><div class="chips" id="tk-status"><span class="chip on" data-v="proposed">Proposed</span><span class="chip" data-v="approved">Scheduled</span><span class="chip" data-v="done,rejected,failed">History</span></div>
+          <span class="grow"></span><span class="small dim" id="tk-auto"></span></div>
+        <div id="tk-list"></div>
+      </section>
+
+      <!-- TARGETS -->
+      <section class="view" id="view-targets">
+        <div class="toolbar"><input id="tg-q" placeholder="Filter targets…" style="max-width:280px"><span class="grow"></span><button class="primary" id="btn-addtarget">+ Add target</button></div>
+        <div id="tg-pending"></div>
+        <div class="table-wrap"><table id="t-targets"></table></div>
+      </section>
+
+      <!-- RUNS -->
+      <section class="view" id="view-runs">
+        <div class="toolbar"><div class="chips" id="rn-status"><span class="chip on" data-v="">All</span><span class="chip" data-v="running">Running</span><span class="chip" data-v="done">Done</span><span class="chip" data-v="failed">Failed</span><span class="chip" data-v="cancelled">Cancelled</span></div><span class="grow"></span><button id="btn-newcrawl2" class="primary">+ New crawl</button></div>
+        <div class="table-wrap"><table id="t-runs"></table></div>
+        <div class="pager" id="rn-pager"></div>
+      </section>
+
+      <!-- SOURCES -->
+      <section class="view" id="view-sources">
+        <div class="notice">Most leaked data never sits on a crawlable .onion page. These sources check your <b>watchlist</b> against breach, leak and ransomware-leak-site data and feed findings into the same alert queue. API keys are configured in <span class="mono">.env</span>.</div>
+        <div class="grid cols-3" id="src-cards"></div>
+        <div class="grid cols-11" style="margin-top:16px">
+          <div class="card"><h3>Threat feeds &amp; enrichment <button class="sm right" id="btn-feeds">Refresh feeds</button></h3><div id="src-feeds" class="small"></div></div>
+          <div class="card"><h3>Recent source runs</h3><div id="src-history"></div></div>
+        </div>
+      </section>
+
+      <!-- WATCHLIST -->
+      <section class="view" id="view-watchlist">
+        <div class="card" style="margin-bottom:16px">
+          <h3>Add asset or term</h3>
+          <div class="toolbar" style="margin:0">
+            <select id="wl-kind" style="min-width:130px"><option value="domain">Domain</option><option value="brand">Brand / company</option><option value="email">E-mail</option><option value="keyword">Keyword</option><option value="ip">IP address</option><option value="crypto">Crypto wallet</option><option value="regex">Regex</option></select>
+            <input id="wl-value" placeholder="e.g. example.com" class="grow">
+            <select id="wl-sev" style="min-width:120px"><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option><option value="low">Low</option></select>
+            <button class="primary" id="btn-addwatch">Add</button>
+          </div>
+          <div class="hint" id="wl-hint">Domains also match subdomains and e-mail addresses at the domain. They are used by the crawler, HIBP, IntelX and ransomware-site checks.</div>
+        </div>
+        <div class="table-wrap"><table id="t-watch"></table></div>
+      </section>
+
+      <!-- PAGES -->
+      <section class="view" id="view-pages">
+        <div class="toolbar">
+          <input id="pg-q" placeholder="Search title, URL, content…" class="grow">
+          <select id="pg-sev"><option value="">Any severity</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+          <select id="pg-changed"><option value="">All pages</option><option value="true">New / changed</option><option value="false">Unchanged</option></select>
+          <select id="pg-cat"><option value="">Any category</option></select>
+        </div>
+        <div class="table-wrap"><table id="t-pages"></table></div>
+        <div class="pager" id="pg-pager"></div>
+      </section>
+
+      <!-- INDICATORS -->
+      <section class="view" id="view-indicators">
+        <div class="toolbar">
+          <input id="in-q" placeholder="Search value…" class="grow">
+          <select id="in-type"><option value="">Any type</option></select>
+          <select id="in-tag"><option value="">Any tag</option><option value="kev-exploited">CISA KEV</option><option value="feodo-c2">Feodo C2</option><option value="hibp">HIBP</option></select>
+          <label style="display:flex;gap:6px;align-items:center;margin:0"><span class="switch"><input type="checkbox" id="in-watch"><span></span></span>Watchlist only</label>
+          <div class="chips"><button class="sm" data-exp="csv">CSV</button><button class="sm" data-exp="json">JSON</button><button class="sm" data-exp="stix">STIX 2.1</button><button class="sm" data-exp="misp">MISP</button></div>
+        </div>
+        <div class="table-wrap"><table id="t-ind"></table></div>
+        <div class="pager" id="in-pager"></div>
+      </section>
+
+      <!-- ANALYST -->
+      <section class="view" id="view-analyst">
+        <div id="an-head"></div>
+        <div id="an-approvals"></div>
+        <div class="chat">
+          <div class="card sess-list"><h3>Investigations <button class="sm right" id="btn-an-new">+ New</button></h3><div id="an-sessions"></div></div>
+          <div class="card transcript"><div id="an-title" style="margin-bottom:8px"></div><div class="tr-body" id="an-body"></div>
+            <div class="composer"><textarea id="an-input" placeholder="Ask a follow-up question…"></textarea><button class="primary" id="btn-an-send">Send</button><button id="btn-an-stop" class="danger" style="display:none">Stop</button></div></div>
+        </div>
+      </section>
+
+      <!-- LEARNING -->
+      <section class="view" id="view-learning">
+        <div class="notice info">The model itself is not retrained. The system learns from <b>your</b> confirmed feedback: corrections become lessons the AI reads in similar cases, noisy watch terms get context rules (after your approval), and every correction becomes a regression test.</div>
+        <div class="grid kpis" id="lr-kpis"></div>
+        <div class="card" style="margin-top:16px"><h3>Evaluation</h3><div id="lr-eval"></div></div>
+        <div class="card" style="margin-top:16px"><h3>Lessons <span class="right"><span class="chips" id="lr-lstatus" style="display:inline-flex"><span class="chip on" data-v="active,proposed">Active &amp; proposed</span><span class="chip" data-v="disabled">Disabled</span></span> <button class="sm primary" id="btn-lr-lesson">+ Lesson</button></span></h3><div class="table-wrap" style="border:0"><table id="t-lessons"></table></div></div>
+        <div class="grid cols-11" style="margin-top:16px">
+          <div class="card"><h3>Watch-term quality <button class="sm right" id="btn-lr-propose">Propose rules</button></h3><div class="table-wrap" style="border:0"><table id="t-terms"></table></div></div>
+          <div class="card"><h3>Suppression rules <button class="sm right" id="btn-lr-rule">+ Rule</button></h3><div class="table-wrap" style="border:0"><table id="t-rules"></table></div></div>
+        </div>
+        <div class="grid cols-11" style="margin-top:16px">
+          <div class="card"><h3>Regression cases</h3><div id="lr-cases"></div></div>
+          <div class="card"><h3>Recent feedback</h3><div id="lr-feedback"></div></div>
+        </div>
+      </section>
+
+      <!-- AI & MODELS -->
+      <section class="view" id="view-aimodels">
+        <div class="card" style="margin-bottom:16px"><h3>Routing &amp; privacy <span class="right small dim" id="ai-mode"></span></h3><div id="ai-routing" class="kv"></div></div>
+        <div class="card" style="margin-bottom:16px"><h3>AI providers <span class="right"><button class="sm" id="btn-ai-refresh">Check all</button> <button class="sm primary" id="btn-ai-add">+ Add provider</button></span></h3>
+          <div class="table-wrap" style="border:0"><table id="t-providers"></table></div>
+          <div class="hint">OpenAI-compatible endpoints (LM Studio, Ollama, llama.cpp server, vLLM, LocalAI, Jan, OpenRouter, Groq, …). <b>Local</b> providers may read raw dark-web text; <b>remote</b> ones only get redacted summaries. Inputs are split into chunks that fit each model's context window.</div></div>
+        <div class="card"><h3>Local GGUF models (llama.cpp) <span class="right" id="llama-ctl"></span></h3>
+          <div id="llama-status" class="kv" style="margin-bottom:12px"></div>
+          <div class="table-wrap" style="border:0;margin-bottom:14px"><table id="t-gguf"></table></div>
+          <div class="tabs" id="gguf-tabs"><span class="tab on" data-t="hf">Hugging Face</span><span class="tab" data-t="url">URL</span><span class="tab" data-t="upload">Upload file</span><span class="tab" data-t="path">Local path</span></div>
+          <div data-pane="hf"><div class="toolbar" style="margin:0"><input id="hf-repo" placeholder="e.g. Qwen/Qwen2.5-3B-Instruct-GGUF" class="grow"><button id="btn-hf-list">List .gguf files</button></div><div id="hf-files" style="margin-top:10px"></div></div>
+          <div data-pane="url" style="display:none"><div class="toolbar" style="margin:0"><input id="dl-url" placeholder="https://huggingface.co/…/resolve/main/model-Q4_K_M.gguf" class="grow"><input id="dl-name" placeholder="name (optional)" style="max-width:200px"><button class="primary" id="btn-dl">Download</button></div><div class="hint" id="dl-hosts"></div></div>
+          <div data-pane="upload" style="display:none"><div class="toolbar" style="margin:0"><input type="file" id="up-file" accept=".gguf" class="grow"><button class="primary" id="btn-up">Upload</button></div><div class="progress" id="up-prog" style="display:none;height:6px"><span style="animation:none;width:0"></span></div><div class="hint" id="up-info"></div></div>
+          <div data-pane="path" style="display:none"><div class="toolbar" style="margin:0"><input id="reg-path" placeholder="/models/llama-3.2-3b-instruct-q4_k_m.gguf" class="grow"><button class="primary" id="btn-reg">Register</button></div><div class="hint">The file stays where it is; deleting the entry never deletes it.</div></div>
+        </div>
+      </section>
+
+      <!-- SYSTEM -->
+      <section class="view" id="view-system">
+        <div class="grid cols-11">
+          <div class="card"><h3>Tor <span class="right"><button class="sm" id="btn-torcheck">Re-check</button> <button class="sm" id="btn-newnym">New circuit</button></span></h3><div id="sys-tor" class="kv"></div></div>
+          <div class="card"><h3>AI routing &amp; privacy</h3><div id="sys-ai" class="kv"></div></div>
+          <div class="card"><h3>Scheduler jobs</h3><div id="sys-jobs"></div></div>
+          <div class="card"><h3>Configuration</h3><div id="sys-cfg" class="kv"></div>
+            <div class="section-t">API key (stored in this browser)</div>
+            <div class="toolbar" style="margin:0"><input id="sys-key" type="password" placeholder="X-API-Key" class="grow"><button id="btn-savekey">Save</button></div></div>
+        </div>
+        <div class="card" style="margin-top:16px"><h3>Audit log</h3><div class="table-wrap" style="border:0"><table id="t-audit"></table></div></div>
+      </section>
+
     </div>
-
-    <!-- OVERVIEW -->
-    <section id="view-overview" class="section active">
-      <div class="stats" id="stats"></div>
-      <div class="charts">
-        <div class="chart-card"><h3>IOCs by type</h3><div class="chart-wrap"><canvas id="chart-ioc"></canvas></div></div>
-        <div class="chart-card"><h3>Alerts by severity</h3><div class="chart-wrap"><canvas id="chart-alert"></canvas></div></div>
-      </div>
-      <div class="panel">
-        <h3>Recent alerts</h3>
-        <div id="recent-alerts"></div>
-      </div>
-    </section>
-
-    <!-- TARGETS -->
-    <section id="view-targets" class="section">
-      <div class="panel">
-        <h3>Add target</h3>
-        <div class="form-grid">
-          <div class="field full"><label>URL (.onion or clear)</label><input id="t-url" placeholder="https://example.onion" style="width:100%"></div>
-          <div class="field"><label>Label</label><input id="t-label" placeholder="brand-x" style="width:100%"></div>
-          <div class="field"><label>Keywords (comma)</label><input id="t-kw" placeholder="leak,brand,credential" style="width:100%"></div>
-        </div>
-        <div class="form-actions">
-          <button class="primary" onclick="addTarget()">Add target</button>
-        </div>
-      </div>
-      <div class="section-head"><h2>Targets</h2><span class="hint" id="targets-count"></span></div>
-      <div class="table-wrap"><table id="t-targets"></table></div>
-    </section>
-
-    <!-- CRAWL -->
-    <section id="view-crawl" class="section">
-      <div class="panel">
-        <h3>Run crawl now</h3>
-        <div class="form-grid">
-          <div class="field full"><label>Start URL</label><input id="c-url" placeholder="https://example.onion" style="width:100%"></div>
-          <div class="field"><label>Keywords (comma)</label><input id="c-kw" placeholder="leak,brand" style="width:100%"></div>
-          <div class="field"><label>Depth</label><input id="c-depth" type="number" value="1" min="0" max="5" style="width:100%"></div>
-        </div>
-        <div class="form-actions">
-          <button class="primary" onclick="runCrawl()">Start crawl</button>
-          <span class="hint" id="crawl-status"></span>
-        </div>
-      </div>
-      <div class="panel" id="run-summary-panel" style="display:none">
-        <div class="section-head" style="margin-bottom:10px">
-          <h3 style="margin:0">AI run summary</h3>
-          <span class="hint" id="run-summary-meta"></span>
-        </div>
-        <div id="run-summary-body"></div>
-      </div>
-      <div class="section-head"><h2>Crawl runs</h2></div>
-      <div class="table-wrap"><table id="t-runs"></table></div>
-    </section>
-
-    <!-- PAGES -->
-    <section id="view-pages" class="section">
-      <div class="section-head"><h2>Crawled pages</h2><span class="hint" id="pages-count"></span></div>
-      <div class="table-wrap"><table id="t-pages"></table></div>
-    </section>
-
-    <!-- IOCS -->
-    <section id="view-iocs" class="section">
-      <div class="section-head">
-        <h2>Indicators of compromise</h2>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="ioc-filter" onchange="loadIocs()">
-            <option value="">all types</option>
-            <option value="ip">ip</option>
-            <option value="email">email</option>
-            <option value="hash">hash</option>
-            <option value="url">url</option>
-            <option value="onion">onion</option>
-            <option value="crypto">crypto</option>
-          </select>
-          <span class="hint" id="iocs-count"></span>
-        </div>
-      </div>
-      <div class="table-wrap"><table id="t-iocs"></table></div>
-    </section>
-
-    <!-- ALERTS -->
-    <section id="view-alerts" class="section">
-      <div class="section-head"><h2>Alert feed</h2><span class="hint" id="alerts-count"></span></div>
-      <div id="alert-feed"></div>
-    </section>
   </main>
 </div>
 
-<!-- page modal -->
-<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <h3 id="modal-title">Page</h3>
-    <div class="meta" id="modal-meta" style="color:var(--muted);font-size:12px;font-family:var(--mono);margin-bottom:10px"></div>
-    <pre id="modal-body"></pre>
-    <div class="form-actions" style="justify-content:flex-end">
-      <button class="ghost" onclick="closeModal()">Close</button>
-    </div>
-  </div>
-</div>
+<div class="drawer-bg" id="drawer-bg"></div>
+<div class="drawer" id="drawer"><div class="dh"><div style="flex:1;min-width:0"><div id="dr-kicker" class="small dim"></div><h2 id="dr-title"></h2></div><button class="ghost sm" id="dr-close">✕</button></div><div class="db" id="dr-body"></div><div class="df" id="dr-foot"></div></div>
 
-<!-- run modal -->
-<div class="modal-backdrop" id="run-modal" onclick="if(event.target===this)closeRunModal()">
-  <div class="modal">
-    <h3 id="run-modal-title">Crawl run</h3>
-    <div class="meta" id="run-modal-meta" style="color:var(--muted);font-size:12px;font-family:var(--mono);margin-bottom:12px"></div>
-    <div id="run-modal-body"></div>
-    <div class="form-actions" style="justify-content:flex-end">
-      <button class="ghost" onclick="closeRunModal()">Close</button>
-    </div>
-  </div>
-</div>
+<div class="modal-bg" id="modal-bg"><div class="modal"><div class="mh"><span id="md-title"></span><span style="flex:1"></span><button class="ghost sm" id="md-close">✕</button></div><div class="mb" id="md-body"></div><div class="mf" id="md-foot"></div></div></div>
+<div class="toasts" id="toasts"></div>
 
 <script>
+"use strict";
 const API = '/api';
-let iocChart = null, alertChart = null;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => (s ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const defang = s => (s ?? '').toString().replace(/^http/i, 'hxxp').replace(/\.onion/gi, '[.]onion');
+const state = { view: 'overview', status: null, alerts: { status: 'open', offset: 0, sel: new Set() }, runs: { status: '', offset: 0 },
+  pages: { offset: 0 }, ind: { offset: 0 }, tasks: { status: 'proposed' }, targets: [] };
+const PAGE = 50;
+let key = '';
+try { key = localStorage.getItem('dwm_api_key') || ''; } catch (e) {}
 
-// navigation
-document.querySelectorAll('.nav-item').forEach(el => {
-  el.addEventListener('click', e => {
-    e.preventDefault();
-    const v = el.dataset.view;
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById('view-' + v).classList.add('active');
-    document.getElementById('view-title').textContent = el.textContent.trim();
-    loadView(v);
-  });
-});
-
-function loadView(v) {
-  if (v === 'overview') loadOverview();
-  if (v === 'targets') loadTargets();
-  if (v === 'crawl') loadRuns();
-  if (v === 'pages') loadPages();
-  if (v === 'iocs') loadIocs();
-  if (v === 'alerts') loadAlerts();
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (key) headers['X-API-Key'] = key;
+  const r = await fetch(API + path, Object.assign({}, opts, { headers }));
+  if (r.status === 401) { askKey(); throw new Error('API key required'); }
+  if (!r.ok) { let m = r.status + ''; try { const j = await r.json(); m = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail); } catch (e) {} throw new Error(m); }
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
 }
+const post = (p, b) => api(p, { method: 'POST', body: JSON.stringify(b || {}) });
+const patch = (p, b) => api(p, { method: 'PATCH', body: JSON.stringify(b || {}) });
+const del = p => api(p, { method: 'DELETE' });
 
-async function api(path, opts) { const r = await fetch(API + path, opts); if (!r.ok) throw new Error(r.status); return r.json(); }
+function toast(msg, kind = '') { const t = document.createElement('div'); t.className = 'toast ' + kind; t.textContent = msg; $('#toasts').appendChild(t); setTimeout(() => t.remove(), 4200); }
+const fail = e => toast(e.message || String(e), 'err');
+const sev = s => `<span class="sev ${esc(s||'low')}">${esc(s||'low')}</span>`;
+function ago(iso) { if (!iso) return '—'; const d = (Date.now() - new Date(iso).getTime()) / 1000; if (d < 0) return 'in ' + dur(-d); return dur(d) + ' ago'; }
+function dur(d) { if (d < 60) return Math.round(d) + 's'; if (d < 3600) return Math.round(d/60) + 'm'; if (d < 86400) return Math.round(d/3600) + 'h'; return Math.round(d/86400) + 'd'; }
+const fmt = iso => iso ? new Date(iso).toLocaleString() : '—';
+const empty = (big, small = '') => `<div class="empty"><div class="big">${big}</div>${small}</div>`;
+const statusTag = s => `<span class="tag ${({done:'ok',running:'acc',queued:'acc',failed:'bad',cancelled:'warn',new:'bad',acknowledged:'warn',resolved:'ok',false_positive:''})[s]||''}">${esc((s||'').replace('_',' '))}</span>`;
+const modeTag = m => `<span class="tag ${m==='agent'?'acc':m==='smart'?'ok':''}">${m==='agent'?'🤖 agent':m==='smart'?'✨ smart':'standard'}</span>`;
 
-function sevBadge(s) { return `<span class="sev ${s||'low'}">${s||'low'}</span>`; }
-function esc(s) { return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// ------------------------------------------------------------- navigation
+const TITLES = { overview: ['Overview', 'Threat picture across all sources'], alerts: ['Alerts', 'Triage queue — deduplicated across runs and sources'],
+  tasks: ['AI Tasks', 'Follow-ups proposed by the AI planner and rules'], learning: ['Learning', 'Feedback, lessons, noise rules and regression tests'], analyst: ['AI Analyst', 'Agent investigations with tools, evidence and human approvals'],
+  aimodels: ['AI & Models', 'Providers (OpenAI-compatible, Ollama, LM Studio, llama.cpp) and local GGUF models'], targets: ['Targets', 'Onion services under monitoring, with schedules and crawl modes'],
+  runs: ['Crawl runs', 'Live and past crawls, AI assessments and agent decisions'], sources: ['Intel sources', 'Breach, leak and ransomware-site intelligence'],
+  watchlist: ['Watchlist', 'Assets and terms that trigger alerts'], pages: ['Pages', 'Collected content with change detection'],
+  indicators: ['Indicators', 'Deduplicated IOCs with first/last seen and feed correlation'], system: ['System', 'Tor, AI, scheduler, configuration and audit'] };
+function go(v) {
+  state.view = v; closeDrawer(); closeModal();
+  $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === v));
+  $$('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
+  $('#v-title').textContent = TITLES[v][0]; $('#v-sub').textContent = TITLES[v][1];
+  if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
+  load(v);
+}
+function load(v) {
+  const f = { overview: loadOverview, alerts: loadAlerts, tasks: loadTasks, targets: loadTargets, runs: loadRuns,
+    sources: loadSources, watchlist: loadWatch, pages: loadPages, indicators: loadInd, system: loadSystem,
+    analyst: loadAnalyst, learning: loadLearning, aimodels: () => loadAIModels(false).then(() => loadAIModels(true)) }[v];
+  if (f) f().catch(fail);
+}
+$$('#nav a').forEach(a => a.addEventListener('click', () => go(a.dataset.view)));
+document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); go(g.dataset.goto); } });
 
-// status
-async function loadStatus() {
+// ------------------------------------------------------------- status / header
+async function loadStatus(force = false) {
   try {
-    const d = await api('/status');
-    const ai = d.ai || {};
-    document.getElementById('st-tor').textContent = d.tor_proxy || '—';
-    document.getElementById('st-tor').className = 'v ok';
-    document.getElementById('st-ai').textContent = ai.routing || '—';
-    document.getElementById('st-model').textContent = ai.local_model || '—';
-    document.getElementById('st-cloud').textContent = ai.cloud_available ? (ai.cloud_provider || 'on') : 'off';
-    document.getElementById('st-cloud').className = 'v ' + (ai.cloud_available ? 'ok' : 'bad');
-  } catch (e) { /* noop */ }
+    const s = await api('/status' + (force ? '?force_tor=true' : ''));
+    state.status = s;
+    $('#ver').textContent = 'v' + s.version;
+    const t = s.tor; const tc = t.is_tor ? 'ok' : (t.reachable ? 'warn' : 'bad');
+    $('#p-tor').innerHTML = `<span class="dot ${tc}"></span>Tor ${t.is_tor ? 'verified' : (t.reachable ? 'unverified' : 'offline')}`;
+    $('#p-tor').title = t.is_tor ? 'Exit IP ' + (t.exit_ip || '') : (t.error || '');
+    const ai = s.ai; const raw = ai.raw_tasks_provider.length, der = ai.derived_tasks_provider.length;
+    $('#p-ai').innerHTML = `<span class="dot ${raw ? 'ok' : der ? 'warn' : 'bad'}"></span>AI ${raw ? ai.raw_tasks_provider.join('+') : der ? 'cloud only' : 'off'}`;
+    $('#p-ai').title = `raw content → ${ai.raw_tasks_provider.join(', ') || 'none (rules)'}; derived → ${ai.derived_tasks_provider.join(', ') || 'none'}`;
+    $('#p-sched').innerHTML = `<span class="dot ${s.scheduler.running ? 'ok' : 'bad'}"></span>${s.scheduler.running ? (s.scheduler.jobs.filter(j => j.id.startsWith('target-')).length + ' scheduled') : 'Scheduler off'}`;
+    const ar = s.active_runs.length; $('#b-runs').style.display = ar ? '' : 'none'; $('#b-runs').textContent = ar;
+  } catch (e) { /* header stays stale */ }
+}
+async function loadBadges() {
+  try {
+    const st = await api('/stats?days=14'); state.stats = st;
+    const b = $('#b-alerts'); b.textContent = st.alerts_new; b.classList.toggle('hot', st.alerts_new > 0);
+    const t = $('#b-tasks'); t.textContent = st.tasks_proposed; t.classList.toggle('hot', st.tasks_proposed > 0);
+    const ap = $('#b-approvals'); ap.textContent = st.approvals_pending || 0; ap.style.display = st.approvals_pending ? '' : 'none'; ap.classList.toggle('hot', st.approvals_pending > 0);
+    return st;
+  } catch (e) { return null; }
 }
 
-// overview
+// ------------------------------------------------------------- overview
+function chart(series, days) {
+  const keys = []; const now = new Date();
+  for (let i = days - 1; i >= 0; i--) { const d = new Date(now); d.setUTCDate(now.getUTCDate() - i); keys.push(d.toISOString().slice(0, 10)); }
+  const A = keys.map(k => series.alerts[k] || 0), I = keys.map(k => series.indicators[k] || 0), P = keys.map(k => series.pages[k] || 0);
+  const max = Math.max(3, Math.ceil(Math.max(...A, ...I, ...P) / 3) * 3); const W = 640, H = 170, pad = 22, bw = (W - pad) / keys.length;
+  let g = '';
+  for (let i = 0; i <= 3; i++) { const y = H - 18 - (H - 30) * i / 3; g += `<line x1="${pad}" x2="${W}" y1="${y}" y2="${y}" stroke="#1f2431"/><text x="0" y="${y + 3}">${Math.round(max * i / 3)}</text>`; }
+  keys.forEach((k, i) => {
+    const x = pad + i * bw, h = v => (H - 30) * v / max, w = bw / 3.6;
+    g += `<rect x="${x + 2}" y="${H - 18 - h(P[i])}" width="${w}" height="${h(P[i])}" rx="2" fill="#2c3550"><title>${k}: ${P[i]} pages</title></rect>`;
+    g += `<rect x="${x + 2 + w}" y="${H - 18 - h(I[i])}" width="${w}" height="${h(I[i])}" rx="2" fill="var(--accent)"><title>${k}: ${I[i]} new indicators</title></rect>`;
+    g += `<rect x="${x + 2 + 2 * w}" y="${H - 18 - h(A[i])}" width="${w}" height="${h(A[i])}" rx="2" fill="var(--critical)"><title>${k}: ${A[i]} alerts</title></rect>`;
+    if (i % Math.ceil(keys.length / 7) === 0) g += `<text x="${x + 2}" y="${H - 4}">${k.slice(5)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="none" style="height:180px">${g}</svg>`;
+}
 async function loadOverview() {
-  const stats = await api('/stats');
-  const items = [
-    { k: 'targets', v: stats.targets, accent: false },
-    { k: 'pages', v: stats.pages, accent: false },
-    { k: 'iocs', v: stats.iocs, accent: true },
-    { k: 'alerts', v: stats.alerts, accent: stats.alerts > 0 },
-  ];
-  document.getElementById('stats').innerHTML = items.map(it =>
-    `<div class="stat ${it.accent?'accent':''}"><div class="label">${it.k}</div><div class="value">${it.v}</div></div>`
-  ).join('');
-
-  // ioc chart
-  const iocs = await api('/iocs?limit=500');
-  const byType = {};
-  iocs.forEach(i => { byType[i.type] = (byType[i.type]||0)+1; });
-  const iocLabels = Object.keys(byType);
-  const iocData = Object.values(byType);
-  if (iocChart) iocChart.destroy();
-  iocChart = new Chart(document.getElementById('chart-ioc'), {
-    type: 'bar',
-    data: { labels: iocLabels.length?iocLabels:['none'], datasets: [{ data: iocData.length?iocData:[0], backgroundColor: '#39d0c4', borderRadius: 4 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7d8793', font: { size: 11 } }, grid: { color: '#2a313c' } }, y: { ticks: { color: '#7d8793', font: { size: 11 } }, grid: { color: '#2a313c' }, beginAtZero: true } } }
-  });
-
-  // alert chart
-  const alerts = await api('/alerts?limit=500');
-  const bySev = { critical:0, high:0, medium:0, low:0 };
-  alerts.forEach(a => { if (bySev[a.severity] !== undefined) bySev[a.severity]++; });
-  if (alertChart) alertChart.destroy();
-  alertChart = new Chart(document.getElementById('chart-alert'), {
-    type: 'doughnut',
-    data: { labels: ['critical','high','medium','low'], datasets: [{ data: [bySev.critical,bySev.high,bySev.medium,bySev.low], backgroundColor: ['#f85149','#e3b341','#58a6ff','#2ea043'], borderWidth: 0 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#7d8793', font: { size: 11 }, boxWidth: 10 } } }, cutout: '62%' }
-  });
-
-  // recent alerts
-  const recent = alerts.slice(0, 6);
-  document.getElementById('recent-alerts').innerHTML = recent.length
-    ? recent.map(a => alertItemHtml(a)).join('')
-    : '<div class="empty"><div class="big">No alerts</div>Nothing tripped yet.</div>';
+  const [st, al, runs] = await Promise.all([loadBadges(), api('/alerts?status=open&limit=8'), api('/runs?limit=10')]);
+  if (!st) return;
+  const s = state.status; let notice = '';
+  if (s && !s.tor.is_tor) notice += `<div class="notice">Tor is not verified (${esc(s.tor.error || 'IsTor=false')}). Crawls will refuse to start while <span class="mono">TOR_REQUIRED=true</span>. Start Tor (port ${esc(s.tor.proxy)}) and press Re-check under System.</div>`;
+  if (st.watchlist === 0) notice += `<div class="notice">Your watchlist is empty — add your domains, brands and key e-mails so the crawler and intel sources know what to look for. <a data-goto="watchlist">Open watchlist →</a></div>`;
+  $('#ov-notice').innerHTML = notice;
+  const ob = st.open_by_severity;
+  $('#kpis').innerHTML = [
+    { l: 'Open alerts', v: st.alerts_open, s: `<span style="color:var(--critical)">${ob.critical} critical</span> · <span style="color:var(--high)">${ob.high} high</span> · ${st.alerts_new} new`, go: 'alerts' },
+    { l: 'Targets', v: st.targets_active, s: `${st.targets} total · <span style="color:${st.targets_down ? 'var(--bad)' : 'inherit'}">${st.targets_down} down</span>`, go: 'targets' },
+    { l: 'Indicators', v: st.indicators, s: `${st.indicators_watch} linked to watchlist`, go: 'indicators' },
+    { l: 'AI tasks waiting', v: st.tasks_proposed, s: 'proposed follow-ups', go: 'tasks' },
+    { l: 'Pages collected', v: st.pages, s: `${st.runs} crawl runs`, go: 'pages' },
+  ].map(k => `<div class="card kpi click" data-goto="${k.go}"><div class="l">${k.l}</div><div class="v">${k.v}</div><div class="s">${k.s}</div></div>`).join('');
+  $('#ov-chart').innerHTML = chart(st.series, st.series.days);
+  const tot = Object.values(ob).reduce((a, b) => a + b, 0) || 1;
+  $('#ov-sev').innerHTML = `<div class="bar" style="height:12px">${['critical','high','medium','low'].map(k => `<span style="width:${100 * ob[k] / tot}%;background:var(--${k})"></span>`).join('')}</div>
+    <div class="legend">${['critical','high','medium','low'].map(k => `<span><i style="background:var(--${k})"></i>${k} ${ob[k]}</span>`).join('')}</div>`;
+  const src = st.alerts_by_source; const srcTot = Object.values(src).reduce((a, b) => a + b, 0) || 1;
+  $('#ov-src').innerHTML = Object.keys(src).length ? Object.entries(src).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+    `<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><span class="small" style="width:90px">${esc(k)}</span><div class="bar" style="flex:1"><span style="width:${100*v/srcTot}%;background:var(--accent)"></span></div><span class="small dim">${v}</span></div>`).join('') : '<div class="dim small">No alerts yet</div>';
+  $('#ov-alerts').innerHTML = al.items.length ? al.items.map(alertItem).join('') : empty('No open alerts', 'Nothing needs your attention right now.');
+  $$('#ov-alerts .item').forEach(el => el.addEventListener('click', () => openAlert(+el.dataset.id)));
+  const done = runs.items.find(r => r.status === 'done' && r.ai_summary);
+  $('#ov-run').innerHTML = done ? summaryHtml(done.ai_summary, done) : empty('No assessment yet', 'Run a crawl to get an AI risk summary.');
+  const act = runs.items.filter(r => r.status === 'running' || r.status === 'queued');
+  $('#ov-active').innerHTML = act.length ? act.map(r => `<div class="item" style="padding:6px 0"><div class="small">${modeTag(r.mode)} <span class="mono">${esc(defang(r.start_url))}</span> · ${esc(r.status)} · ${r.pages} pages</div><div class="progress"><span></span></div></div>`).join('') : '<div class="dim small">No crawls running</div>';
+}
+function alertItem(a) {
+  return `<div class="item" data-id="${a.id}"><div>${sev(a.severity)}</div><div style="min-width:0;flex:1"><div class="t trunc" style="max-width:100%">${esc(a.title)}</div>
+    <div class="small dim">${esc(a.source)} · ${ago(a.last_seen)}${a.occurrences > 1 ? ' · seen ' + a.occurrences + '×' : ''}</div></div></div>`;
+}
+function summaryHtml(ai, run) {
+  if (!ai) return '<div class="dim">No summary</div>';
+  return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">${sev(ai.risk_level)}<span class="small dim trunc" style="max-width:100%">${run ? 'run #' + run.id + ' · ' + esc(defang(run.start_url)) + ' · ' : ''}${ai.provider === 'rules' ? 'rule-based' : 'AI'}</span></div>
+    <div style="margin-bottom:10px">${esc(ai.summary)}</div>
+    ${(ai.key_findings || []).length ? '<div class="section-t">Key findings</div><ul style="margin:0;padding-left:18px">' + ai.key_findings.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : ''}
+    ${(ai.recommendations || []).length ? '<div class="section-t">Recommendations</div><ul style="margin:0;padding-left:18px">' + ai.recommendations.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : ''}
+    ${ai.stop_reason ? `<div class="small dim" style="margin-top:8px">Stopped: ${esc(ai.stop_reason)}</div>` : ''}`;
 }
 
-function alertItemHtml(a) {
-  return `<div class="alert-item ${a.severity}">
-    <div class="title">${esc(a.title)}</div>
-    <div class="desc">${esc((a.description||'').slice(0,180))}</div>
-    <div class="meta">${a.severity} · ${a.created_at}${a.page_id? ' · page '+a.page_id : ''}</div>
-  </div>`;
+// ------------------------------------------------------------- alerts
+async function loadAlerts() {
+  const a = state.alerts; const p = new URLSearchParams({ limit: PAGE, offset: a.offset });
+  if (a.status) p.set('status', a.status); if ($('#al-sev').value) p.set('severity', $('#al-sev').value);
+  if ($('#al-source').value) p.set('source', $('#al-source').value); if ($('#al-q').value.trim()) p.set('q', $('#al-q').value.trim());
+  const res = await api('/alerts?' + p); a.sel.clear(); updBulk();
+  const t = $('#t-alerts');
+  if (!res.items.length) { t.innerHTML = `<tr><td>${empty('No alerts match', 'Adjust the filters or add watchlist terms.')}</td></tr>`; $('#al-pager').innerHTML = ''; return; }
+  t.innerHTML = `<tr><th style="width:28px"><input type="checkbox" id="al-all"></th><th>Severity</th><th>Alert</th><th>Source</th><th>Status</th><th>Seen</th><th>Last</th></tr>` +
+    res.items.map(x => `<tr class="row" data-id="${x.id}"><td><input type="checkbox" class="al-cb" data-id="${x.id}"></td><td>${sev(x.severity)}</td>
+      <td><div class="trunc" style="max-width:520px">${esc(x.title)}</div>${x.triage && x.triage.reason ? `<div class="small dim trunc" style="max-width:520px">AI: ${x.triage.true_positive === false ? 'likely false positive — ' : ''}${esc(x.triage.reason)}</div>` : ''}</td>
+      <td><span class="tag">${esc(x.source)}</span></td><td>${statusTag(x.status)}</td><td class="small">${x.occurrences}×</td><td class="small dim">${ago(x.last_seen)}</td></tr>`).join('');
+  pager('#al-pager', res.total, a, loadAlerts);
+  $$('#t-alerts tr.row').forEach(tr => tr.addEventListener('click', e => { if (e.target.type === 'checkbox') return; openAlert(+tr.dataset.id); }));
+  $$('.al-cb').forEach(cb => cb.addEventListener('change', () => { cb.checked ? a.sel.add(+cb.dataset.id) : a.sel.delete(+cb.dataset.id); updBulk(); }));
+  $('#al-all').addEventListener('change', e => { $$('.al-cb').forEach(cb => { cb.checked = e.target.checked; cb.checked ? a.sel.add(+cb.dataset.id) : a.sel.delete(+cb.dataset.id); }); updBulk(); });
 }
+function updBulk() { const n = state.alerts.sel.size; $('#al-bulk').style.display = n ? '' : 'none'; $('#al-selcount').textContent = n + ' selected'; }
+$$('[data-bulk]').forEach(b => b.addEventListener('click', async () => {
+  try { const r = await post('/alerts/bulk', { ids: [...state.alerts.sel], status: b.dataset.bulk }); toast(r.updated + ' alert(s) updated', 'ok'); loadAlerts(); loadBadges(); } catch (e) { fail(e); }
+}));
+chips('#al-status', v => { state.alerts.status = v; state.alerts.offset = 0; loadAlerts().catch(fail); });
+['#al-sev', '#al-source'].forEach(s => $(s).addEventListener('change', () => { state.alerts.offset = 0; loadAlerts().catch(fail); }));
+debounce('#al-q', () => { state.alerts.offset = 0; loadAlerts().catch(fail); });
 
-// targets
+async function openAlert(id) {
+  const a = await api('/alerts/' + id);
+  const tri = a.triage || {};
+  drawer(`${a.source.toUpperCase()} · alert #${a.id}`, a.title, `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${sev(a.severity)} ${statusTag(a.status)} <span class="tag">seen ${a.occurrences}×</span> ${a.notified ? `<span class="tag ok">notified: ${esc(a.notify_channels)}</span>` : '<span class="tag">not notified</span>'}</div>
+    <div class="kv"><div>First seen</div><div>${fmt(a.created_at)}</div><div>Last seen</div><div>${fmt(a.last_seen)}</div>
+      ${a.url ? `<div>Reference</div><div class="mono" style="word-break:break-all">${esc(defang(a.url))}</div>` : ''}
+      ${a.run_id ? `<div>Run</div><div><a href="#" data-run="${a.run_id}">#${a.run_id}</a></div>` : ''}</div>
+    <div class="section-t">Description</div><div class="pre" style="max-height:260px">${esc(a.description)}</div>
+    ${(a.matches || []).length ? `<div class="section-t">Watchlist matches</div>${a.matches.map(m => `<div style="margin-bottom:8px"><span class="tag acc">${esc(m.kind)}</span> <b>${esc(m.value)}</b> ${sev(m.severity)}<div class="small dim" style="margin-top:3px">…${esc(m.context || '')}…</div></div>`).join('')}` : ''}
+    <div class="section-t">AI analyst</div>${tri.analyst ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="tag ${VERDICT[tri.analyst.verdict]?.[0] || ''}">${esc(VERDICT[tri.analyst.verdict]?.[1] || tri.analyst.verdict)}</span>${sev(tri.analyst.severity)}<span class="small dim">confidence ${Math.round((tri.analyst.confidence || 0) * 100)}%</span><a href="#" class="small" data-session="${tri.analyst.session_id}">open investigation →</a></div><div style="margin-top:6px">${esc(tri.analyst.summary)}</div>` : `<div class="small dim">Not investigated yet.</div>`}
+    ${feedbackBox(a.id, (tri.analyst || {}).verdict || (tri.true_positive === false ? 'false_positive' : tri.true_positive ? 'true_positive' : ''))}
+    <div class="section-t">AI triage</div>${tri.reason ? `<div class="kv"><div>Verdict</div><div>${tri.true_positive === false ? '<span class="tag warn">likely false positive</span>' : '<span class="tag bad">likely true positive</span>'} ${tri.escalate ? '<span class="tag bad">escalate</span>' : ''} <span class="dim small">confidence ${Math.round((tri.confidence || 0) * 100)}%</span></div><div>Reason</div><div>${esc(tri.reason)}</div><div>Next step</div><div>${esc(tri.recommended_action || '')}</div></div>` : `<div class="dim small">${esc(tri.error || 'No triage yet.')}</div>`}
+    <div class="section-t">Analyst note</div><textarea id="al-note" placeholder="Add context for your team…">${esc(a.analyst_note || '')}</textarea>
+    ${a.page_id ? `<div style="margin-top:12px"><button class="sm" data-page="${a.page_id}">Open source page →</button></div>` : ''}`,
+    [['◈ Investigate with AI', () => investigate(id), 'primary'], ['Acknowledge', () => setAlert(id, { status: 'acknowledged' })], ['Resolve', () => setAlert(id, { status: 'resolved' })],
+     ['False positive', () => setAlert(id, { status: 'false_positive' })], ['Save note', () => setAlert(id, { analyst_note: $('#al-note').value })],
+     ['Re-triage (AI)', async () => { try { await post(`/alerts/${id}/triage`); toast('Triage updated', 'ok'); openAlert(id); } catch (e) { fail(e); } }],
+     ...(state.status && state.status.misp ? [['Send to MISP', async () => { try { const r = await post(`/alerts/${id}/misp`); toast('MISP event ' + r.event_id, 'ok'); } catch (e) { fail(e); } }]] : [])]);
+  bindFeedback($('#dr-body'));
+}
+async function setAlert(id, body) { try { await patch('/alerts/' + id, body); toast('Alert updated', 'ok'); closeDrawer(); loadAlerts(); loadBadges(); } catch (e) { fail(e); } }
+
+// ------------------------------------------------------------- tasks
+const TASK_IC = { recrawl: '↻', add_target: '◎', add_watch: '☰', review: '👁' };
+async function loadTasks() {
+  const res = await api('/tasks?status=' + encodeURIComponent(state.tasks.status)); loadBadges();
+  const auto = (state.status && state.status.config.auto_approve) || [];
+  $('#tk-auto').textContent = auto.length ? 'Auto-approved kinds: ' + auto.join(', ') + ' · new targets always need you' : 'Every task needs approval';
+  $('#tk-list').innerHTML = res.items.length ? res.items.map(t => `<div class="task"><div class="ic">${TASK_IC[t.kind] || '•'}</div>
+    <div class="body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(t.title)}</b><span class="tag">${esc(t.kind.replace('_', ' '))}</span><span class="tag ${t.priority === 'high' ? 'bad' : ''}">${esc(t.priority)}</span><span class="tag ${t.source === 'ai' ? 'acc' : ''}">${t.source === 'ai' ? '✦ AI' : esc(t.source)}</span>${t.status !== 'proposed' ? statusTag(t.status) : ''}</div>
+      <div class="muted small" style="margin-top:4px">${esc(t.reason)}</div>
+      <div class="small dim mono" style="margin-top:4px;word-break:break-all">${esc(taskPayload(t))}</div>
+      <div class="small dim" style="margin-top:4px">${ago(t.created_at)}${t.due_at ? ' · due ' + ago(t.due_at) : ''}${t.result ? ' · ' + esc(t.result) : ''}${t.run_id ? ` · from <a href="#" data-run="${t.run_id}">run #${t.run_id}</a>` : ''}</div></div>
+    ${t.status === 'proposed' ? `<div class="acts"><button class="sm primary" data-tapprove="${t.id}">Approve</button><button class="sm" data-treject="${t.id}">Reject</button></div>` : t.status === 'approved' ? `<div class="acts"><button class="sm" data-treject="${t.id}">Cancel</button></div>` : ''}</div>`).join('')
+    : empty(state.tasks.status === 'proposed' ? 'No proposals waiting' : 'Nothing here', 'After each crawl the planner suggests recrawls, new targets, watch terms and pages to review.');
+  $$('[data-tapprove]').forEach(b => b.addEventListener('click', async () => { try { const r = await post(`/tasks/${b.dataset.tapprove}/approve`); toast('Task ' + r.status, 'ok'); loadTasks(); } catch (e) { fail(e); } }));
+  $$('[data-treject]').forEach(b => b.addEventListener('click', async () => { try { await post(`/tasks/${b.dataset.treject}/reject`); toast('Task rejected'); loadTasks(); } catch (e) { fail(e); } }));
+}
+function taskPayload(t) { const p = t.payload || {}; if (t.kind === 'recrawl') return `recrawl target #${t.target_id} in ${p.in_minutes} min`; if (t.kind === 'add_target') return `${defang(p.url)} · ${p.mode}${p.goal ? ' · goal: ' + p.goal : ''}`; if (t.kind === 'add_watch') return `${p.kind}: ${p.value} (${p.severity})`; if (t.kind === 'review') return defang(p.page_url); return JSON.stringify(p); }
+chips('#tk-status', v => { state.tasks.status = v; loadTasks().catch(fail); });
+
+// ------------------------------------------------------------- targets
+function schedText(t) { if (t.schedule_cron) return 'cron ' + t.schedule_cron; if (t.schedule_interval_min) { const m = t.schedule_interval_min; return m % 1440 === 0 ? `every ${m / 1440}d` : m % 60 === 0 ? `every ${m / 60}h` : `every ${m}m`; } return 'manual'; }
 async function loadTargets() {
-  const rows = await api('/targets');
-  document.getElementById('targets-count').textContent = rows.length + ' targets';
-  const t = document.getElementById('t-targets');
-  if (!rows.length) { t.innerHTML = '<tr><td colspan="5"><div class="empty">No targets yet. Add one above.</div></td></tr>'; return; }
-  t.innerHTML = '<tr><th>ID</th><th>URL</th><th>Label</th><th>Keywords</th><th>Last crawled</th></tr>' +
-    rows.map(r => `<tr>
-      <td class="mono">${r.id}</td>
-      <td class="trunc">${esc(r.url)}</td>
-      <td>${esc(r.label||'—')}</td>
-      <td class="mono">${esc(r.keywords||'—')}</td>
-      <td class="mono">${r.last_crawled||'never'}</td>
-    </tr>`).join('');
+  const rows = await api('/targets'); state.targets = rows;
+  const q = $('#tg-q').value.trim().toLowerCase();
+  const pend = rows.filter(t => t.approval === 'pending'); const list = rows.filter(t => t.approval !== 'pending' && (!q || (t.url + t.label).toLowerCase().includes(q)));
+  $('#tg-pending').innerHTML = pend.length ? `<div class="card" style="margin-bottom:14px"><h3>Waiting for approval</h3>${pend.map(t => `<div class="task" style="margin:0 0 8px"><div class="ic">◎</div><div class="body"><b class="mono">${esc(defang(t.url))}</b><div class="small dim">${esc(t.label)} · suggested by ${esc(t.source)}</div></div><div class="acts"><button class="sm primary" data-tgapprove="${t.id}">Approve</button><button class="sm danger" data-tgdel="${t.id}">Remove</button></div></div>`).join('')}</div>` : '';
+  const t = $('#t-targets');
+  if (!list.length) { t.innerHTML = `<tr><td>${empty('No targets yet', 'Add an onion service you are authorised to monitor.')}</td></tr>`; }
+  else t.innerHTML = `<tr><th></th><th>Target</th><th>Mode</th><th>Schedule</th><th>Last crawl</th><th>Next run</th><th style="text-align:right">Actions</th></tr>` + list.map(x => `<tr>
+    <td style="width:16px"><span class="dot ${x.last_status === 'up' ? 'ok' : x.last_status === 'down' ? 'bad' : ''}" title="${esc(x.last_status)} ${esc(x.last_error || '')}"></span></td>
+    <td><div><b>${esc(x.label || '—')}</b> ${x.active ? '' : '<span class="tag">paused</span>'} ${x.source === 'ai' ? '<span class="tag acc">✦ AI</span>' : ''}</div><div class="mono small dim trunc">${esc(defang(x.url))}</div>${x.keywords ? `<div class="small dim">kw: ${esc(x.keywords)}</div>` : ''}</td>
+    <td>${modeTag(x.crawl_mode)}${x.crawl_mode === 'agent' && x.agent_goal ? `<div class="small dim trunc" style="max-width:200px" title="${esc(x.agent_goal)}">${esc(x.agent_goal)}</div>` : ''}</td>
+    <td class="small">${esc(schedText(x))}</td><td class="small dim">${ago(x.last_crawled)}</td><td class="small dim">${x.next_run && x.active ? ago(x.next_run) : '—'}</td>
+    <td style="text-align:right;white-space:nowrap"><button class="sm primary" data-tgrun="${x.id}">Run</button> <button class="sm" data-tgedit="${x.id}">Edit</button> <button class="sm" data-tgtoggle="${x.id}">${x.active ? 'Pause' : 'Resume'}</button> <button class="sm danger" data-tgdel="${x.id}">✕</button></td></tr>`).join('');
+  $$('[data-tgrun]').forEach(b => b.addEventListener('click', async () => { try { const r = await post(`/targets/${b.dataset.tgrun}/crawl`); toast('Run #' + r.run_id + ' queued', 'ok'); loadStatus(); } catch (e) { fail(e); } }));
+  $$('[data-tgedit]').forEach(b => b.addEventListener('click', () => targetModal(rows.find(x => x.id === +b.dataset.tgedit))));
+  $$('[data-tgtoggle]').forEach(b => b.addEventListener('click', async () => { const x = rows.find(r => r.id === +b.dataset.tgtoggle); try { await patch('/targets/' + x.id, { active: !x.active }); loadTargets(); } catch (e) { fail(e); } }));
+  $$('[data-tgdel]').forEach(b => b.addEventListener('click', async () => { const x = rows.find(r => r.id === +b.dataset.tgdel); confirmModal(`Delete target ${defang(x.url)}?`, 'This also deletes its stored pages and runs. Alerts are kept.', async () => { await del(`/targets/${x.id}?purge=true`); toast('Target deleted'); loadTargets(); }); }));
+  $$('[data-tgapprove]').forEach(b => b.addEventListener('click', async () => { try { await patch('/targets/' + b.dataset.tgapprove, { approval: 'approved' }); toast('Target approved', 'ok'); loadTargets(); } catch (e) { fail(e); } }));
 }
-async function addTarget() {
-  const url = document.getElementById('t-url').value.trim();
-  if (!url) return;
-  await api('/targets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-    url, label: document.getElementById('t-label').value, keywords: document.getElementById('t-kw').value
-  })});
-  document.getElementById('t-url').value=''; document.getElementById('t-label').value=''; document.getElementById('t-kw').value='';
-  loadTargets();
+debounce('#tg-q', () => loadTargets().catch(fail));
+const PRESETS = [['', 'Manual only'], ['60', 'Every hour'], ['360', 'Every 6 hours'], ['720', 'Every 12 hours'], ['1440', 'Daily'], ['10080', 'Weekly'], ['cron', 'Custom cron…']];
+function modeSeg(cur) {
+  return `<div class="seg" id="f-mode">${[['standard', 'Standard', 'Breadth-first, predictable'], ['smart', '✨ Smart', 'AI ranks links by relevance to your watchlist'], ['agent', '🤖 Agent', 'AI navigates step by step toward a goal']].map(([v, b, s]) => `<div class="opt ${cur === v ? 'on' : ''}" data-v="${v}"><b>${b}</b><span>${s}</span></div>`).join('')}</div>`;
 }
+function targetModal(t) {
+  const e = !!t; t = t || { crawl_mode: 'smart', scope: null };
+  const preset = t.schedule_cron ? 'cron' : (t.schedule_interval_min ? String(t.schedule_interval_min) : '');
+  modal(e ? 'Edit target' : 'Add target', `<div class="form">
+    <div><label>Onion URL</label><input id="f-url" value="${esc(t.url || '')}" placeholder="http://…onion/" ${e ? 'disabled' : ''}></div>
+    <div class="row2"><div><label>Label</label><input id="f-label" value="${esc(t.label || '')}" placeholder="e.g. LockBit leak blog"></div>
+      <div><label>Extra keywords (comma-separated)</label><input id="f-kw" value="${esc(t.keywords || '')}" placeholder="optional, on top of the watchlist"></div></div>
+    <div><label>Crawl mode</label>${modeSeg(t.crawl_mode)}</div>
+    <div id="f-goalwrap" style="display:${t.crawl_mode === 'agent' ? '' : 'none'}"><label>Agent goal</label><textarea id="f-goal" placeholder="e.g. Find new victim posts and any mention of our company or domains">${esc(t.agent_goal || '')}</textarea></div>
+    <div class="row3"><div><label>Depth</label><input id="f-depth" type="number" min="0" max="6" value="${t.depth ?? ''}" placeholder="default"></div>
+      <div><label>Max pages</label><input id="f-max" type="number" min="1" max="2000" value="${t.max_pages ?? ''}" placeholder="default"></div>
+      <div><label>Scope</label><select id="f-scope"><option value="">Default</option><option value="same_site" ${t.scope === 'same_site' ? 'selected' : ''}>Same site</option><option value="allowed" ${t.scope === 'allowed' ? 'selected' : ''}>Allowed domains</option><option value="any_onion" ${t.scope === 'any_onion' ? 'selected' : ''}>Any onion (broad)</option></select></div></div>
+    <div class="row2"><div><label>Schedule</label><select id="f-sched">${PRESETS.map(([v, l]) => `<option value="${v}" ${preset === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div id="f-cronwrap" style="display:${preset === 'cron' ? '' : 'none'}"><label>Cron (UTC)</label><input id="f-cron" class="mono" value="${esc(t.schedule_cron || '')}" placeholder="0 */6 * * *"></div></div>
+    <div class="hint">The crawler is passive: GET requests only, no logins, no forms. Pages matching the abuse blocklist are discarded unread.</div></div>`,
+    [['Cancel', closeModal], [e ? 'Save' : 'Add target', async () => {
+      const mode = $('#f-mode .opt.on').dataset.v, sch = $('#f-sched').value;
+      const body = { label: $('#f-label').value, keywords: $('#f-kw').value, crawl_mode: mode, agent_goal: $('#f-goal').value,
+        depth: $('#f-depth').value === '' ? null : +$('#f-depth').value, max_pages: $('#f-max').value === '' ? null : +$('#f-max').value,
+        scope: $('#f-scope').value || null, schedule_interval_min: sch && sch !== 'cron' ? +sch : 0, schedule_cron: sch === 'cron' ? $('#f-cron').value.trim() : '' };
+      try { if (e) await patch('/targets/' + t.id, body); else await post('/targets', Object.assign({ url: $('#f-url').value.trim() }, body));
+        toast(e ? 'Target saved' : 'Target added', 'ok'); closeModal(); loadTargets(); loadStatus(); } catch (er) { fail(er); }
+    }, 'primary']]);
+  bindModeSeg();
+  $('#f-sched').addEventListener('change', ev => $('#f-cronwrap').style.display = ev.target.value === 'cron' ? '' : 'none');
+}
+function bindModeSeg() { $$('#f-mode .opt').forEach(o => o.addEventListener('click', () => { $$('#f-mode .opt').forEach(x => x.classList.remove('on')); o.classList.add('on'); const g = $('#f-goalwrap'); if (g) g.style.display = o.dataset.v === 'agent' ? '' : 'none'; })); }
+$('#btn-addtarget').addEventListener('click', () => targetModal(null));
 
-// crawl
-async function runCrawl() {
-  const url = document.getElementById('c-url').value.trim();
-  if (!url) return;
-  const st = document.getElementById('crawl-status');
-  st.textContent = 'running…';
-  try {
-    const r = await api('/crawl', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-      url, keywords: document.getElementById('c-kw').value, depth: parseInt(document.getElementById('c-depth').value||'1')
-    })});
-    st.textContent = `done: ${r.pages_crawled} pages, ${r.iocs_found} iocs, ${r.alerts_raised} alerts`;
-    if (r.ai_summary) renderRunSummary({ id: r.run_id, pages: r.pages_crawled, iocs: r.iocs_found, alerts: r.alerts_raised, ai_summary: r.ai_summary });
-    loadRuns(); loadOverview();
-  } catch (e) { st.textContent = 'error: ' + e.message; }
+// ------------------------------------------------------------- crawl now
+function crawlModal() {
+  const opts = state.targets.filter(t => t.approval === 'approved').map(t => `<option value="${t.id}">${esc(t.label || t.url)}</option>`).join('');
+  modal('New crawl', `<div class="form">
+    <div><label>Existing target</label><select id="c-target"><option value="">— new URL —</option>${opts}</select></div>
+    <div id="c-urlwrap"><label>Onion URL</label><input id="c-url" placeholder="http://…onion/"></div>
+    <div><label>Mode</label>${modeSeg('smart')}</div>
+    <div id="f-goalwrap" style="display:none"><label>Agent goal</label><textarea id="f-goal" placeholder="What should the agent look for?"></textarea></div>
+    <div class="row3"><div><label>Depth</label><input id="c-depth" type="number" min="0" max="6" placeholder="default"></div><div><label>Max pages</label><input id="c-max" type="number" min="1" max="2000" placeholder="default"></div><div><label>Keywords</label><input id="c-kw" placeholder="optional"></div></div>
+    <div class="hint">Runs in the background — follow progress under Crawl runs.</div></div>`,
+    [['Cancel', closeModal], ['Start crawl', async () => {
+      const body = { mode: $('#f-mode .opt.on').dataset.v, goal: $('#f-goal').value || null, keywords: $('#c-kw').value,
+        depth: $('#c-depth').value === '' ? null : +$('#c-depth').value, max_pages: $('#c-max').value === '' ? null : +$('#c-max').value };
+      if ($('#c-target').value) body.target_id = +$('#c-target').value; else body.url = $('#c-url').value.trim();
+      try { const r = await post('/crawl', body); toast('Run #' + r.run_id + ' queued', 'ok'); closeModal(); go('runs'); } catch (e) { fail(e); }
+    }, 'primary']]);
+  bindModeSeg();
+  $('#c-target').addEventListener('change', e => $('#c-urlwrap').style.display = e.target.value ? 'none' : '');
 }
-function renderSummaryHtml(s) {
-  if (!s || !s.summary) return '<div class="empty">No AI summary available for this run.</div>';
-  const risk = s.risk_level || 'low';
-  const findings = Array.isArray(s.key_findings) ? s.key_findings : [];
-  const recs = Array.isArray(s.recommendations) ? s.recommendations : [];
-  return `<div class="summary-head"><span class="sev ${risk}">${esc(risk)} risk</span></div>
-    <p class="summary-text">${esc(s.summary)}</p>
-    <div class="summary-cols">
-      <div><h4>Key findings</h4>${findings.length ? '<ul>' + findings.map(f => `<li>${esc(f)}</li>`).join('') + '</ul>' : '<div class="none">none</div>'}</div>
-      <div><h4>Recommendations</h4>${recs.length ? '<ul>' + recs.map(f => `<li>${esc(f)}</li>`).join('') + '</ul>' : '<div class="none">none</div>'}</div>
-    </div>`;
-}
-function renderRunSummary(run) {
-  const panel = document.getElementById('run-summary-panel');
-  if (!run || !run.ai_summary) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-  document.getElementById('run-summary-meta').textContent =
-    `run #${run.id} · ${run.pages} pages · ${run.iocs} iocs · ${run.alerts} alerts`;
-  document.getElementById('run-summary-body').innerHTML = renderSummaryHtml(run.ai_summary);
-}
+['#btn-newcrawl', '#btn-newcrawl2'].forEach(s => $(s).addEventListener('click', async () => { if (!state.targets.length) state.targets = await api('/targets').catch(() => []); crawlModal(); }));
+
+// ------------------------------------------------------------- runs
 async function loadRuns() {
-  const rows = await api('/runs');
-  if (rows.length) renderRunSummary(rows[0]);
-  else document.getElementById('run-summary-panel').style.display = 'none';
-  const t = document.getElementById('t-runs');
-  if (!rows.length) { t.innerHTML = '<tr><td colspan="8"><div class="empty">No runs yet.</div></td></tr>'; return; }
-  t.innerHTML = '<tr><th>ID</th><th>Started</th><th>Finished</th><th>Pages</th><th>IOCs</th><th>Alerts</th><th>Risk</th><th>Status</th></tr>' +
-    rows.map(r => `<tr>
-      <td class="mono">${r.id}</td>
-      <td class="mono">${r.started}</td>
-      <td class="mono">${r.finished||'—'}</td>
-      <td class="mono">${r.pages}</td>
-      <td class="mono">${r.iocs}</td>
-      <td class="mono">${r.alerts}</td>
-      <td>${r.ai_summary ? sevBadge(r.ai_summary.risk_level) : '—'}</td>
-      <td><span class="sev ${r.status==='done'?'low':'medium'}">${r.status}</span></td>
-    </tr>`).join('');
-  t.querySelectorAll('tbody tr').forEach((tr, idx) => {
-    tr.style.cursor = 'pointer';
-    tr.addEventListener('click', () => openRun(rows[idx].id));
-  });
+  const r = state.runs; const p = new URLSearchParams({ limit: PAGE, offset: r.offset }); if (r.status) p.set('status', r.status);
+  const res = await api('/runs?' + p); const t = $('#t-runs');
+  if (!res.items.length) { t.innerHTML = `<tr><td>${empty('No runs yet', 'Start a crawl with “New crawl”.')}</td></tr>`; $('#rn-pager').innerHTML = ''; return; }
+  t.innerHTML = `<tr><th>#</th><th>Target</th><th>Mode</th><th>Trigger</th><th>Status</th><th>Pages</th><th>IOCs</th><th>Alerts</th><th>Risk</th><th>Started</th><th></th></tr>` + res.items.map(x => `<tr class="row" data-id="${x.id}">
+    <td class="mono small">${x.id}</td><td class="mono small trunc" style="max-width:260px">${esc(defang(x.start_url))}</td><td>${modeTag(x.mode)}</td><td class="small dim">${esc(x.trigger)}</td>
+    <td>${statusTag(x.status)}${x.status === 'running' ? '<div class="progress"><span></span></div>' : ''}${x.error ? `<div class="small dim trunc" style="max-width:200px" title="${esc(x.error)}">${esc(x.error)}</div>` : ''}</td>
+    <td>${x.pages}${x.changed ? ` <span class="small dim">(${x.changed} new)</span>` : ''}</td><td>${x.iocs}</td><td>${x.alerts}</td><td>${x.ai_summary ? sev(x.ai_summary.risk_level) : '—'}</td><td class="small dim">${ago(x.started)}</td>
+    <td>${x.status === 'running' || x.status === 'queued' ? `<button class="sm danger" data-cancel="${x.id}">Stop</button>` : ''}</td></tr>`).join('');
+  pager('#rn-pager', res.total, r, loadRuns);
+  $$('#t-runs tr.row').forEach(tr => tr.addEventListener('click', e => { if (e.target.closest('button')) return; openRun(+tr.dataset.id); }));
+  $$('[data-cancel]').forEach(b => b.addEventListener('click', async () => { try { await post(`/runs/${b.dataset.cancel}/cancel`); toast('Stopping run…'); setTimeout(loadRuns, 800); } catch (e) { fail(e); } }));
 }
+chips('#rn-status', v => { state.runs.status = v; state.runs.offset = 0; loadRuns().catch(fail); });
 async function openRun(id) {
-  const r = await api('/runs/' + id);
-  document.getElementById('run-modal-title').textContent = 'Crawl run #' + r.id;
-  document.getElementById('run-modal-meta').textContent =
-    `${r.started} → ${r.finished||'—'} · ${r.pages} pages · ${r.iocs} iocs · ${r.alerts} alerts · ${r.status}`;
-  document.getElementById('run-modal-body').innerHTML = renderSummaryHtml(r.ai_summary);
-  document.getElementById('run-modal').classList.add('open');
+  const r = await api('/runs/' + id); const sp = (r.notes || {}).spider || {};
+  drawer(`Run #${r.id} · ${r.trigger}`, defang(r.start_url), `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${statusTag(r.status)} ${modeTag(r.mode)} <span class="tag">${r.pages} pages</span><span class="tag">${r.changed} new/changed</span><span class="tag">${r.iocs} IOCs</span><span class="tag">${r.alerts} alerts</span>${sp.blocked ? `<span class="tag warn">${sp.blocked} blocked by safety filter</span>` : ''}</div>
+    <div class="kv"><div>Started</div><div>${fmt(r.started)}</div><div>Finished</div><div>${fmt(r.finished)}</div>${r.error ? `<div>Error</div><div style="color:var(--bad)">${esc(r.error)}</div>` : ''}${sp.stop_reason ? `<div>Stopped</div><div>${esc(sp.stop_reason)}</div>` : ''}<div>Fetch errors</div><div>${sp.errors || 0} errors · ${sp.skipped || 0} skipped (content type)</div></div>
+    <div class="section-t">Assessment</div>${summaryHtml(r.ai_summary)}
+    ${(r.agent_log || []).length ? `<div class="section-t">Agent decisions</div><div class="timeline">${r.agent_log.map(ev => `<div class="ev ${ev.action === 'stop' ? 'stop' : ''}"><div class="small"><b>Step ${ev.step}</b> · ${esc(ev.action)} <span class="tag ${ev.by === 'ai' ? 'acc' : ''}">${esc(ev.by)}</span></div>${ev.url ? `<div class="mono small dim" style="word-break:break-all">${esc(defang(ev.url))}</div>` : ''}<div class="small muted">${esc(ev.reason || '')}</div></div>`).join('')}</div>` : ''}
+    ${r.alerts_list.length ? `<div class="section-t">Alerts</div><div class="list">${r.alerts_list.map(alertItem).join('')}</div>` : ''}
+    ${r.tasks_list.length ? `<div class="section-t">Follow-up tasks</div>${r.tasks_list.map(t => `<div class="small" style="margin:4px 0">${TASK_IC[t.kind] || '•'} ${esc(t.title)} ${statusTag(t.status)}</div>`).join('')}` : ''}
+    <div class="section-t">Pages (${r.pages_list.length})</div><table>${r.pages_list.map(p => `<tr class="row" data-page="${p.id}"><td>${sev(p.severity)}</td><td><div class="trunc" style="max-width:420px">${esc(p.title || '—')}</div><div class="mono small dim trunc" style="max-width:420px">${esc(defang(p.url))}</div></td><td>${p.changed ? '<span class="tag acc">new</span>' : ''}</td></tr>`).join('')}</table>
+    ${((r.notes || {}).discovered_onions || []).length ? `<div class="section-t">Linked onion services (not crawled)</div><div class="mono small dim">${r.notes.discovered_onions.slice(0, 50).map(x => esc(defang(x))).join('<br>')}</div>` : ''}`,
+    r.status === 'running' || r.status === 'queued' ? [['Stop run', async () => { await post(`/runs/${id}/cancel`); toast('Stopping…'); closeDrawer(); }, 'danger']] : []);
+  $$('#dr-body .item').forEach(el => el.addEventListener('click', () => openAlert(+el.dataset.id)));
 }
-function closeRunModal() { document.getElementById('run-modal').classList.remove('open'); }
 
-// pages
-async function loadPages() {
-  const rows = await api('/pages?limit=100');
-  document.getElementById('pages-count').textContent = rows.length + ' pages';
-  const t = document.getElementById('t-pages');
-  if (!rows.length) { t.innerHTML = '<tr><td colspan="5"><div class="empty">No pages crawled yet.</div></td></tr>'; return; }
-  t.innerHTML = '<tr><th>Title</th><th>URL</th><th>Severity</th><th>Summary</th><th>When</th></tr>' +
-    rows.map(r => `<tr>
-      <td class="trunc">${esc(r.title||'—')}</td>
-      <td class="trunc mono">${esc(r.url)}</td>
-      <td>${sevBadge(r.severity)}</td>
-      <td class="trunc">${esc(r.summary||'')}</td>
-      <td class="mono">${r.crawled_at}</td>
-    </tr>`).join('');
-  // click row to view
-  t.querySelectorAll('tbody tr').forEach((tr, idx) => {
-    tr.style.cursor = 'pointer';
-    tr.addEventListener('click', () => openPage(rows[idx].id));
-  });
+// ------------------------------------------------------------- sources
+async function loadSources() {
+  const [res] = await Promise.all([api('/sources')]); const s = state.status || await api('/status');
+  const ICON = { hibp: '🔑', intelx: '🗄', ransomware: '☠', ahmia: '🧅' };
+  $('#src-cards').innerHTML = res.sources.map(x => `<div class="card src"><h3><span style="font-size:18px">${ICON[x.name] || '•'}</span> ${esc(x.label)}<span class="right">${x.enabled ? '<span class="tag ok">enabled</span>' : `<span class="tag">${x.needs_key ? 'needs API key' : 'disabled'}</span>`}</span></h3>
+    <div class="small muted">${esc(x.description)}</div>
+    <div class="small dim">${x.last_run ? `Last run ${ago(x.last_run.started)} · ${esc(x.last_run.status)} · ${x.last_run.findings} findings · ${x.last_run.alerts} new alerts${x.last_run.error ? `<div style="color:var(--bad)">${esc(x.last_run.error)}</div>` : ''}` : 'Never run'}</div>
+    <div><button class="sm" data-srun="${x.name}" ${x.enabled ? '' : 'disabled'}>Run now</button></div></div>`).join('');
+  $$('[data-srun]').forEach(b => b.addEventListener('click', async () => { try { await post(`/sources/${b.dataset.srun}/run`); toast(b.dataset.srun + ' started — results appear in Alerts', 'ok'); setTimeout(loadSources, 4000); } catch (e) { fail(e); } }));
+  $('#src-feeds').innerHTML = `<div class="kv"><div>CISA KEV</div><div>Actively exploited CVEs — CVE indicators get the <span class="tag">kev-exploited</span> tag</div><div>Feodo Tracker</div><div>Botnet C2 IPs — matches get <span class="tag">feodo-c2</span></div>
+    <div>Lookups</div><div>${s.enrichment.length ? s.enrichment.map(x => `<span class="tag ok">${esc(x)}</span>`).join('') : '<span class="dim">none configured (VirusTotal, AbuseIPDB, OTX, ThreatFox)</span>'}</div><div>MISP</div><div>${s.misp ? '<span class="tag ok">connected</span>' : '<span class="dim">not configured</span>'}</div></div>`;
+  $('#src-history').innerHTML = res.history.length ? `<table>${res.history.map(h => `<tr><td class="small">${esc(h.source)}</td><td>${statusTag(h.status)}</td><td class="small">${h.findings} findings</td><td class="small dim">${ago(h.started)}</td></tr>`).join('')}</table>` : '<div class="dim small">No runs yet</div>';
 }
+$('#btn-feeds').addEventListener('click', async () => { try { await post('/feeds/refresh'); toast('Feed refresh started', 'ok'); } catch (e) { fail(e); } });
+
+// ------------------------------------------------------------- watchlist
+const WL_PH = { domain: 'example.com', brand: 'Example Corp', email: 'ceo@example.com', keyword: 'project-phoenix', ip: '203.0.113.10', crypto: 'bc1q…', regex: '(?i)example[-_ ]?corp' };
+$('#wl-kind').addEventListener('change', e => $('#wl-value').placeholder = 'e.g. ' + WL_PH[e.target.value]);
+async function loadWatch() {
+  const res = await api('/watchlist'); const t = $('#t-watch');
+  if (!res.items.length) { t.innerHTML = `<tr><td>${empty('Watchlist is empty', 'Start with your domains, brand names and VIP e-mail addresses.')}</td></tr>`; return; }
+  t.innerHTML = `<tr><th>Active</th><th>Kind</th><th>Value</th><th>Severity</th><th>Source</th><th>Added</th><th></th></tr>` + res.items.map(w => `<tr>
+    <td><label class="switch"><input type="checkbox" data-wtoggle="${w.id}" ${w.active ? 'checked' : ''}><span></span></label></td><td><span class="tag acc">${esc(w.kind)}</span></td><td class="mono">${esc(w.value)}</td>
+    <td><select data-wsev="${w.id}" style="width:auto;padding:3px 6px">${['low','medium','high','critical'].map(s => `<option ${s === w.severity ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
+    <td class="small">${w.source === 'ai' ? '<span class="tag acc">✦ AI</span>' : esc(w.source)}</td><td class="small dim">${ago(w.created_at)}</td><td><button class="sm danger" data-wdel="${w.id}">✕</button></td></tr>`).join('');
+  $$('[data-wtoggle]').forEach(c => c.addEventListener('change', () => patch('/watchlist/' + c.dataset.wtoggle, { active: c.checked }).catch(fail)));
+  $$('[data-wsev]').forEach(c => c.addEventListener('change', () => patch('/watchlist/' + c.dataset.wsev, { severity: c.value }).then(() => toast('Severity updated', 'ok')).catch(fail)));
+  $$('[data-wdel]').forEach(b => b.addEventListener('click', async () => { try { await del('/watchlist/' + b.dataset.wdel); loadWatch(); } catch (e) { fail(e); } }));
+}
+async function addWatch() { const v = $('#wl-value').value.trim(); if (!v) return; try { await post('/watchlist', { kind: $('#wl-kind').value, value: v, severity: $('#wl-sev').value }); $('#wl-value').value = ''; toast('Added to watchlist', 'ok'); loadWatch(); } catch (e) { fail(e); } }
+$('#btn-addwatch').addEventListener('click', addWatch); $('#wl-value').addEventListener('keydown', e => { if (e.key === 'Enter') addWatch(); });
+
+// ------------------------------------------------------------- pages
+async function loadPages() {
+  const st = state.stats || await loadBadges();
+  if (st && $('#pg-cat').options.length <= 1) Object.keys(st.categories || {}).forEach(c => $('#pg-cat').add(new Option(c, c)));
+  const p = new URLSearchParams({ limit: PAGE, offset: state.pages.offset });
+  [['q', '#pg-q'], ['severity', '#pg-sev'], ['changed', '#pg-changed'], ['category', '#pg-cat']].forEach(([k, s]) => { const v = $(s).value.trim(); if (v) p.set(k, v); });
+  const res = await api('/pages?' + p); const t = $('#t-pages');
+  if (!res.items.length) { t.innerHTML = `<tr><td>${empty('No pages', 'Crawled pages show up here.')}</td></tr>`; $('#pg-pager').innerHTML = ''; return; }
+  t.innerHTML = `<tr><th>Severity</th><th>Page</th><th>Category</th><th>Summary</th><th>Crawled</th></tr>` + res.items.map(x => `<tr class="row" data-page="${x.id}">
+    <td>${sev(x.severity)}</td><td><div class="trunc" style="max-width:320px">${esc(x.title || '—')} ${x.changed ? '<span class="tag acc">new/changed</span>' : ''}</div><div class="mono small dim trunc" style="max-width:320px">${esc(defang(x.url))}</div></td>
+    <td><span class="tag">${esc(x.category)}</span></td><td class="small muted"><div class="trunc" style="max-width:420px">${esc(x.summary || '')}</div></td><td class="small dim">${ago(x.crawled_at)}</td></tr>`).join('');
+  pager('#pg-pager', res.total, state.pages, loadPages);
+}
+['#pg-sev', '#pg-changed', '#pg-cat'].forEach(s => $(s).addEventListener('change', () => { state.pages.offset = 0; loadPages().catch(fail); }));
+debounce('#pg-q', () => { state.pages.offset = 0; loadPages().catch(fail); });
 async function openPage(id) {
   const p = await api('/pages/' + id);
-  document.getElementById('modal-title').textContent = p.title || p.url;
-  document.getElementById('modal-meta').textContent = p.url + ' · ' + p.crawled_at + ' · ' + (p.severity||'');
-  document.getElementById('modal-body').textContent = (p.summary? p.summary+'\n\n---\n\n' : '') + (p.content||'');
-  document.getElementById('modal').classList.add('open');
-}
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-
-// iocs
-async function loadIocs() {
-  const type = document.getElementById('ioc-filter').value;
-  const q = type ? ('?ioc_type=' + encodeURIComponent(type) + '&limit=200') : '?limit=200';
-  const rows = await api('/iocs' + q);
-  document.getElementById('iocs-count').textContent = rows.length + ' iocs';
-  const t = document.getElementById('t-iocs');
-  if (!rows.length) { t.innerHTML = '<tr><td colspan="5"><div class="empty">No IOCs extracted yet.</div></td></tr>'; return; }
-  t.innerHTML = '<tr><th>Type</th><th>Value</th><th>Confidence</th><th>Page</th><th>When</th></tr>' +
-    rows.map(r => `<tr>
-      <td class="mono">${esc(r.type)}</td>
-      <td class="mono trunc">${esc(r.value)}</td>
-      <td class="mono">${(r.confidence||0).toFixed(2)}</td>
-      <td class="mono">${r.page_id||'—'}</td>
-      <td class="mono">${r.created_at}</td>
-    </tr>`).join('');
+  drawer(`Page #${p.id} · ${p.category}`, p.title || defang(p.url), `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${sev(p.severity)} ${p.changed ? '<span class="tag acc">new/changed</span>' : '<span class="tag">unchanged</span>'} ${p.ai_analyzed ? '<span class="tag ok">AI analysed</span>' : '<span class="tag">rules only</span>'}</div>
+    <div class="kv"><div>URL</div><div class="mono" style="word-break:break-all">${esc(defang(p.url))}</div><div>First seen</div><div>${fmt(p.first_seen)}</div><div>Last crawl</div><div>${fmt(p.crawled_at)}</div><div>SHA-256</div><div class="mono small" style="word-break:break-all">${esc(p.content_hash)}</div></div>
+    ${p.summary ? `<div class="section-t">Summary</div><div>${esc(p.summary)}</div>` : ''}
+    ${p.alerts.length ? `<div class="section-t">Alerts</div><div class="list">${p.alerts.map(alertItem).join('')}</div>` : ''}
+    ${p.indicators.length ? `<div class="section-t">Indicators (${p.indicators.length})</div><table>${p.indicators.map(i => `<tr class="row" data-ind="${i.id}"><td><span class="tag">${esc(i.type)}</span></td><td class="mono small" style="word-break:break-all">${esc(i.value)}</td><td>${(i.tags || '').split(',').filter(Boolean).map(t => `<span class="tag warn">${esc(t)}</span>`).join('')}</td></tr>`).join('')}</table>` : ''}
+    <div class="section-t">Content ${p.content_purged ? '(purged by retention policy)' : '(text only, untrusted)'}</div><div class="pre" id="pg-content"></div>`, []);
+  $('#pg-content').textContent = p.content || '—';
+  $$('#dr-body .item').forEach(el => el.addEventListener('click', () => openAlert(+el.dataset.id)));
 }
 
-// alerts
-async function loadAlerts() {
-  const rows = await api('/alerts?limit=100');
-  document.getElementById('alerts-count').textContent = rows.length + ' alerts';
-  const feed = document.getElementById('alert-feed');
-  if (!rows.length) { feed.innerHTML = '<div class="empty"><div class="big">No alerts</div>Nothing tripped yet. Run a crawl with matching keywords or high-severity content.</div>'; return; }
-  feed.innerHTML = rows.map(a => alertItemHtml(a)).join('');
+// ------------------------------------------------------------- indicators
+async function loadInd() {
+  const st = state.stats || await loadBadges();
+  if (st && $('#in-type').options.length <= 1) Object.keys(st.ioc_types || {}).sort().forEach(c => $('#in-type').add(new Option(c, c)));
+  const res = await api('/indicators?' + indParams({ limit: PAGE, offset: state.ind.offset })); const t = $('#t-ind');
+  if (!res.items.length) { t.innerHTML = `<tr><td>${empty('No indicators', 'Indicators are extracted from crawled pages and intel sources.')}</td></tr>`; $('#in-pager').innerHTML = ''; return; }
+  t.innerHTML = `<tr><th>Type</th><th>Value</th><th>Tags</th><th>Seen</th><th>Conf.</th><th>First seen</th><th>Last seen</th></tr>` + res.items.map(i => `<tr class="row" data-ind="${i.id}">
+    <td><span class="tag ${i.on_watchlist ? 'bad' : ''}">${esc(i.type)}</span></td><td class="mono small trunc" style="max-width:420px">${esc(i.value)}</td>
+    <td>${i.on_watchlist ? '<span class="tag bad">watchlist</span>' : ''}${(i.tags || '').split(',').filter(Boolean).map(t => `<span class="tag warn">${esc(t)}</span>`).join('')}</td>
+    <td>${i.seen_count}×</td><td class="small">${Math.round(i.confidence * 100)}%</td><td class="small dim">${ago(i.first_seen)}</td><td class="small dim">${ago(i.last_seen)}</td></tr>`).join('');
+  pager('#in-pager', res.total, state.ind, loadInd);
+}
+function indParams(extra) { const p = new URLSearchParams(extra); if ($('#in-q').value.trim()) p.set('q', $('#in-q').value.trim()); if ($('#in-type').value) p.set('ioc_type', $('#in-type').value); if ($('#in-tag').value) p.set('tag', $('#in-tag').value); if ($('#in-watch').checked) p.set('watch_only', 'true'); return p; }
+['#in-type', '#in-tag', '#in-watch'].forEach(s => $(s).addEventListener('change', () => { state.ind.offset = 0; loadInd().catch(fail); }));
+debounce('#in-q', () => { state.ind.offset = 0; loadInd().catch(fail); });
+$$('[data-exp]').forEach(b => b.addEventListener('click', async () => {
+  try { const r = await fetch(API + '/indicators/export?' + indParams({ fmt: b.dataset.exp }), { headers: key ? { 'X-API-Key': key } : {} });
+    if (!r.ok) throw new Error('export failed: ' + r.status);
+    const blob = await r.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'indicators.' + ({ stix: 'stix.json', misp: 'misp.json' }[b.dataset.exp] || b.dataset.exp); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  } catch (e) { fail(e); }
+}));
+async function openInd(id) {
+  const i = await api('/indicators/' + id);
+  drawer(`Indicator · ${i.type}`, i.value, `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${i.on_watchlist ? '<span class="tag bad">watchlist</span>' : ''}${(i.tags || '').split(',').filter(Boolean).map(t => `<span class="tag warn">${esc(t)}</span>`).join('')}</div>
+    <div class="kv"><div>First seen</div><div>${fmt(i.first_seen)}</div><div>Last seen</div><div>${fmt(i.last_seen)}</div><div>Sightings</div><div>${i.seen_count}</div><div>Confidence</div><div>${Math.round(i.confidence * 100)}%</div></div>
+    <div class="section-t">Enrichment</div><div id="ind-enrich" class="small dim">Not looked up yet.</div>
+    <div class="section-t">Sightings</div>${i.sightings.map(sg => `<div style="padding:8px 0;border-bottom:1px solid var(--line)">${sg.page_id ? `<a href="#" data-page="${sg.page_id}" class="mono small">${esc(defang(sg.page_url || ''))}</a>` : '<span class="small">' + esc(sg.source) + '</span>'} <span class="tag">${esc(sg.source)}</span> <span class="small dim">${ago(sg.created_at)}</span><div class="small muted">${esc(sg.context)}</div></div>`).join('') || '<div class="dim small">—</div>'}`,
+    [['Enrich (feeds / VT / OTX …)', async () => { $('#ind-enrich').textContent = 'Looking up…'; try { const r = await post(`/indicators/${id}/enrich`); $('#ind-enrich').innerHTML = `<div class="pre">${esc(JSON.stringify(r, null, 2))}</div>`; } catch (e) { $('#ind-enrich').textContent = e.message; } }],
+     ['Copy value', () => navigator.clipboard.writeText(i.value).then(() => toast('Copied', 'ok'))]]);
 }
 
-async function refreshAll() {
-  await loadStatus();
-  const active = document.querySelector('.nav-item.active').dataset.view;
-  loadView(active);
-  document.getElementById('last-refresh').textContent = 'refreshed ' + new Date().toLocaleTimeString();
+// ------------------------------------------------------------- system
+async function loadSystem() {
+  await loadStatus(); const s = state.status; const t = s.tor, ai = s.ai, c = s.config;
+  $('#sys-tor').innerHTML = `<div>Proxy</div><div class="mono">${esc(t.proxy)}</div><div>Reachable</div><div>${t.reachable ? '✓' : '✕'}</div><div>Verified Tor exit</div><div>${t.is_tor ? '<span class="tag ok">yes</span>' : '<span class="tag bad">no</span>'}</div><div>Exit IP</div><div class="mono">${esc(t.exit_ip || '—')}</div><div>Required</div><div>${c.tor_required ? 'yes — crawls refuse without Tor' : '<span style="color:var(--bad)">no (lab mode)</span>'}</div>${t.error ? `<div>Error</div><div class="small" style="color:var(--bad)">${esc(t.error)}</div>` : ''}`;
+  $('#sys-ai').innerHTML = `<div>Routing</div><div>${esc(ai.routing)}</div><div>Local model</div><div>${ai.local_available ? '<span class="tag ok">online</span>' : '<span class="tag bad">offline</span>'} <span class="mono">${esc(ai.local_model)}</span></div><div>Cloud</div><div>${ai.cloud_available ? '<span class="tag ok">' + esc(ai.cloud_provider) + '</span>' : '<span class="dim">not configured</span>'}</div>
+    <div>Raw page content →</div><div>${ai.raw_tasks_provider.length ? esc(ai.raw_tasks_provider.join(' → ')) : '<span class="dim">no AI (rules)</span>'} ${ai.cloud_allow_raw ? '<span class="tag bad">cloud allowed</span>' : '<span class="tag ok">stays local</span>'}</div>
+    <div>Summaries/triage →</div><div>${esc(ai.derived_tasks_provider.join(' → ') || 'none')} ${ai.cloud_redact ? '<span class="tag ok">redacted</span>' : ''}</div><div>Calls</div><div>${ai.stats.calls} (${ai.stats.errors} errors)</div>`;
+  $('#sys-jobs').innerHTML = s.scheduler.jobs.length ? `<table>${s.scheduler.jobs.map(j => `<tr><td class="small">${esc(j.name)}</td><td class="small dim">${j.next_run ? ago(j.next_run) : '—'}</td></tr>`).join('')}</table>` : '<div class="dim small">Scheduler not running</div>';
+  $('#sys-cfg').innerHTML = `<div>Default scope</div><div>${esc(c.scope)}</div><div>Store content</div><div>${c.store_content ? 'yes' : 'no'}</div><div>Retention</div><div>${c.retention_days ? c.retention_days + ' days' : 'forever'}</div><div>Alert threshold</div><div>${sev(c.alert_min_severity)}</div><div>Notify via</div><div>${c.notify_channels.map(x => `<span class="tag">${esc(x)}</span>`).join('') || '—'}</div><div>API auth</div><div>${c.auth ? '<span class="tag ok">API key required</span>' : '<span class="tag warn">open (localhost only)</span>'}</div>`;
+  $('#sys-key').value = key;
+  const au = await api('/audit?limit=60');
+  $('#t-audit').innerHTML = `<tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr>` + au.items.map(a => `<tr><td class="small dim">${fmt(a.ts)}</td><td class="small">${esc(a.actor)}</td><td><span class="tag">${esc(a.action)}</span></td><td class="small muted">${esc(a.detail)}</td></tr>`).join('');
+}
+$('#btn-torcheck').addEventListener('click', async () => { toast('Checking Tor…'); await loadStatus(true); loadSystem(); });
+$('#btn-newnym').addEventListener('click', async () => { try { const r = await post('/tor/newnym'); toast(r.ok ? 'New circuit requested' : 'Failed: ' + r.message, r.ok ? 'ok' : 'err'); } catch (e) { fail(e); } });
+$('#btn-savekey').addEventListener('click', () => { key = $('#sys-key').value.trim(); try { localStorage.setItem('dwm_api_key', key); } catch (e) {} toast('API key saved', 'ok'); refresh(); });
+function askKey() { if ($('#modal-bg').classList.contains('open')) return; modal('API key required', `<div class="form"><div><label>X-API-Key</label><input id="k-in" type="password" autofocus></div><div class="hint">Set via API_KEY in .env. Stored only in this browser.</div></div>`, [['Save', () => { key = $('#k-in').value.trim(); try { localStorage.setItem('dwm_api_key', key); } catch (e) {} closeModal(); refresh(); }, 'primary']]); }
+
+
+// ------------------------------------------------------------- AI analyst
+const VERDICT = { true_positive: ['bad', 'True positive'], false_positive: ['ok', 'False positive'], benign: ['ok', 'Benign'], needs_more_info: ['warn', 'Needs more info'] };
+const an = { sid: null, timer: null, lastSeq: 0, status: null };
+async function loadAnalyst() {
+  const [st, sessions, appr] = await Promise.all([api('/analyst/status'), api('/analyst/sessions?limit=60'), api('/analyst/approvals')]);
+  an.status = st;
+  $('#an-head').innerHTML = st.rule_based
+    ? `<div class="notice">No AI provider the privacy policy allows for raw content is available, so the analyst runs <b>rule-based</b>. Add a local model under <a data-goto="aimodels">AI &amp; Models</a> (LM Studio, Ollama, llama.cpp/GGUF …).</div>`
+    : `<div class="notice info">Analyst model: <b>${esc(st.provider)}</b> ${esc(st.model || '')} · context ${st.context_window ? st.context_window.toLocaleString() + ' tokens' : 'unknown'} · auto-investigates new alerts ≥ ${esc(st.auto_severity || 'off')} · runs without asking: ${esc(st.auto_approve.join(', '))} · asks for: ${esc(st.ask.join(', '))}</div>`;
+  $('#an-approvals').innerHTML = appr.length ? `<div class="card" style="margin-bottom:14px"><h3>Waiting for your approval (${appr.length})</h3>${appr.map(a => `<div class="task" style="margin:0 0 8px"><div class="ic">⚠</div><div class="body"><b>${esc(a.tool)}</b> <span class="tag warn">${esc(a.permission)}</span> <span class="small dim">session #${a.session_id} · ${ago(a.created_at)}</span><div class="mono small" style="margin-top:4px;word-break:break-all">${esc(JSON.stringify(a.args))}</div></div><div class="acts"><button class="sm primary" data-apr="${a.id}">Approve</button><button class="sm" data-rej="${a.id}">Reject</button></div></div>`).join('')}</div>` : '';
+  $$('[data-apr]').forEach(b => b.addEventListener('click', () => decideApproval(b.dataset.apr, 'approve')));
+  $$('[data-rej]').forEach(b => b.addEventListener('click', () => decideApproval(b.dataset.rej, 'reject')));
+  $('#an-sessions').innerHTML = sessions.length ? sessions.map(x => `<div class="item ${x.id === an.sid ? 'on' : ''}" data-sid="${x.id}">
+      <div class="small" style="display:flex;gap:6px;align-items:center">${x.report ? `<span class="tag ${VERDICT[x.report.verdict]?.[0] || ''}">${esc(VERDICT[x.report.verdict]?.[1] || x.report.verdict)}</span>` : statusTag(x.status)}<span class="dim">#${x.id} · ${esc(x.trigger)}</span></div>
+      <div class="trunc" style="max-width:100%;margin-top:3px">${esc(x.title)}</div><div class="small dim">${ago(x.updated_at)} · ${x.steps} steps · ${x.tool_calls} tools</div></div>`).join('')
+    : empty('No investigations yet', 'Open an alert and press “Investigate with AI”.');
+  $$('#an-sessions .item').forEach(el => el.addEventListener('click', () => openSession(+el.dataset.sid)));
+  if (an.sid) renderSession(an.sid); else if (sessions.length) openSession(sessions[0].id);
+  else { $('#an-title').innerHTML = ''; $('#an-body').innerHTML = empty('Select or start an investigation'); }
+}
+async function decideApproval(id, d) { try { const r = await post(`/analyst/approvals/${id}/${d}`); toast(`Approval #${id}: ${r.status}`, r.status === 'failed' ? 'err' : 'ok'); loadAnalyst(); loadBadges(); } catch (e) { fail(e); } }
+function openSession(sid) { an.sid = sid; $$('#an-sessions .item').forEach(el => el.classList.toggle('on', +el.dataset.sid === sid)); renderSession(sid); }
+async function renderSession(sid) {
+  clearTimeout(an.timer);
+  const d = await api(`/analyst/sessions/${sid}`);
+  const busy = d.status === 'running' || d.status === 'queued';
+  $('#an-title').innerHTML = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(d.title)}</b> ${statusTag(d.status)} <span class="small dim">${esc(d.provider)} ${esc(d.model || '')}</span>${d.subject_type === 'alert' && d.subject_id ? ` <a href="#" class="small" data-alert="${d.subject_id}">alert #${d.subject_id}</a>` : ''}</div>${d.error ? `<div class="small" style="color:var(--bad)">${esc(d.error)}</div>` : ''}${busy ? '<div class="progress"><span></span></div>' : ''}`;
+  const results = {}; d.events.filter(e => e.type === 'tool/result').forEach(e => results[e.payload.id] = e.payload);
+  const appr = {}; d.approvals.forEach(a => appr[a.id] = a);
+  const html = [];
+  for (const e of d.events) {
+    const p = e.payload;
+    if (e.type === 'user/message') html.push(p.injected ? `<div class="small dim" style="margin:6px 0">↳ ${esc(p.content)}</div>` : `<div class="msg user"><div class="who">You</div>${esc(p.content)}</div>`);
+    else if (e.type === 'assistant/message') {
+      html.push(`<div class="msg ai">${p.content ? `<div class="who">Analyst</div><div>${esc(p.content)}</div>` : ''}${(p.tool_calls || []).map(c => toolCard(c, results[c.id], appr)).join('')}</div>`);
+    } else if (e.type === 'assistant/attempt') html.push(`<div class="small" style="color:var(--warn);margin:4px 0">⚠ model attempt failed: ${esc(p.error?.code)} ${esc((p.error?.message || '').slice(0, 160))}</div>`);
+    else if (e.type === 'context/compacted') html.push(`<details class="tcall"><summary><span class="tag acc">context</span> Compacted ${p.covered_events} earlier events into a checkpoint (${esc(p.reason)})</summary><div class="tb"><pre>${esc(p.summary)}</pre></div></details>`);
+    else if (e.type === 'approval/resolved') html.push(`<div class="small" style="margin:6px 0">${p.status === 'approved' ? '✅' : p.status === 'rejected' ? '⛔' : '⚠'} Approval #${p.approval_id} <b>${esc(p.status)}</b> for ${esc(p.tool)} <span class="dim">by ${esc(p.by)}</span></div>`);
+    else if (e.type === 'report/submitted') html.push(reportCard(p.report) + (d.subject_type === 'alert' && d.subject_id ? feedbackBox(d.subject_id, p.report.verdict) : ''));
+    else if (e.type === 'turn/end' && p.reason !== 'completed') html.push(`<div class="small dim" style="margin:6px 0">turn ended: ${esc(p.reason)} ${esc(p.error || '')}</div>`);
+  }
+  $('#an-body').innerHTML = html.join('') || empty('Starting…');
+  bindFeedback($('#an-body'));
+  $$('#an-body [data-apr]').forEach(b => b.addEventListener('click', () => decideApproval(b.dataset.apr, 'approve')));
+  $$('#an-body [data-rej]').forEach(b => b.addEventListener('click', () => decideApproval(b.dataset.rej, 'reject')));
+  const body = $('#an-body'); body.scrollTop = body.scrollHeight;
+  $('#btn-an-send').disabled = busy; $('#btn-an-stop').style.display = busy ? '' : 'none';
+  if (busy && state.view === 'analyst' && an.sid === sid) an.timer = setTimeout(() => renderSession(sid).catch(() => {}), 2500);
+  else if (state.view === 'analyst') { loadBadges(); }
+}
+function toolCard(c, r, appr) {
+  const err = r && r.is_error; const code = r && r.error ? r.error.code : '';
+  const pending = code === 'APPROVAL_PENDING' && r.approval_id && appr[r.approval_id];
+  const a = pending ? appr[r.approval_id] : null;
+  const icon = !r ? '…' : pending ? (a.status === 'pending' ? '⏳' : a.status === 'approved' ? '✅' : '⛔') : err ? '✕' : '✓';
+  return `<details class="tcall"><summary><span style="width:16px;text-align:center">${icon}</span><b class="mono">${esc(c.name)}</b><span class="mono dim trunc" style="max-width:420px">${esc(JSON.stringify(c.args))}</span>${code ? `<span class="tag ${pending ? 'warn' : 'bad'}">${esc(code)}</span>` : ''}${r && r.truncated ? '<span class="tag">truncated</span>' : ''}</summary>
+    <div class="tb">${a && a.status === 'pending' ? `<div style="margin:6px 0"><button class="sm primary" data-apr="${a.id}">Approve</button> <button class="sm" data-rej="${a.id}">Reject</button></div>` : ''}<pre>${esc(r ? r.content : 'running…')}</pre></div></details>`;
+}
+function reportCard(r) {
+  if (!r) return '';
+  const v = VERDICT[r.verdict] || ['', r.verdict];
+  return `<div class="report"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><b>Analyst report</b><span class="tag ${v[0]}">${esc(v[1])}</span>${sev(r.severity)}<span class="small dim">confidence</span><span class="conf"><span style="width:${Math.round((r.confidence || 0) * 100)}%"></span></span><span class="small">${Math.round((r.confidence || 0) * 100)}%</span><span class="small dim right">${esc(r.provider || '')}</span></div>
+    <div style="margin-bottom:8px">${esc(r.summary)}</div>
+    ${(r.evidence || []).length ? `<div class="section-t">Evidence</div><ul style="margin:0;padding-left:18px">${r.evidence.map(e => `<li>${esc(e.claim)} <span class="small dim">— ${esc(e.source || '')}</span></li>`).join('')}</ul>` : ''}
+    ${(r.recommended_actions || []).length ? `<div class="section-t">Recommended actions</div><ul style="margin:0;padding-left:18px">${r.recommended_actions.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${(r.indicators || []).length ? `<div class="section-t">Indicators</div><div>${r.indicators.map(x => `<span class="tag mono">${esc(x)}</span>`).join('')}</div>` : ''}</div>`;
+}
+$('#btn-an-send').addEventListener('click', async () => {
+  const t = $('#an-input').value.trim(); if (!t) return;
+  try { if (an.sid) await post(`/analyst/sessions/${an.sid}/messages`, { text: t }); else { const r = await post('/analyst/sessions', { question: t }); an.sid = r.id; }
+    $('#an-input').value = ''; loadAnalyst(); } catch (e) { fail(e); }
+});
+$('#an-input').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('#btn-an-send').click(); });
+$('#btn-an-stop').addEventListener('click', async () => { if (an.sid) { await post(`/analyst/sessions/${an.sid}/cancel`); toast('Stopping after the current step…'); } });
+$('#btn-an-new').addEventListener('click', () => modal('New investigation', `<div class="form"><div><label>Alert ID (optional)</label><input id="ni-alert" type="number" min="1"></div><div><label>Question</label><textarea id="ni-q" placeholder="e.g. Are any of our VPN credentials circulating? Compare with last month's alerts."></textarea></div></div>`,
+  [['Cancel', closeModal], ['Start', async () => { const aid = +$('#ni-alert').value || null, q = $('#ni-q').value.trim() || null; try { const r = await post('/analyst/sessions', { alert_id: aid, question: q }); an.sid = r.id; closeModal(); loadAnalyst(); } catch (e) { fail(e); } }, 'primary']]));
+async function investigate(alertId) { try { const r = await post('/analyst/sessions', { alert_id: alertId }); an.sid = r.id; closeDrawer(); go('analyst'); toast('Investigation #' + r.id + ' started', 'ok'); } catch (e) { fail(e); } }
+document.addEventListener('click', e => { const a = e.target.closest('[data-alert]'); if (a) { e.preventDefault(); openAlert(+a.dataset.alert).catch(fail); } });
+
+// ------------------------------------------------------------- AI & models
+let presetsCache = null;
+async function loadAIModels(check = false) {
+  const [pv, gm] = await Promise.all([api('/ai/providers' + (check ? '?check=true' : '')), api('/ai/models')]);
+  const R = pv.routing;
+  $('#ai-mode').textContent = 'AI_ROUTING=' + R.mode + (R.cloud_allow_raw ? ' · CLOUD_ALLOW_RAW=true' : '');
+  const name = k => esc((pv.providers.find(p => p.key === k) || {}).name || k);
+  $('#ai-routing').innerHTML = `<div>Raw page content →</div><div>${R.raw.length ? R.raw.map(name).join(' → ') : '<span class="dim">no local provider – rules only</span>'}</div>
+    <div>Summaries / triage →</div><div>${R.derived.length ? R.derived.map(name).join(' → ') : '<span class="dim">none</span>'}</div>
+    <div>AI analyst →</div><div>first available of the raw list</div>`;
+  $('#t-providers').innerHTML = `<tr><th></th><th>Provider</th><th>Endpoint</th><th>Model</th><th>Trust</th><th>Context</th><th>Prio</th><th style="text-align:right">Actions</th></tr>` + pv.providers.map(p => `<tr>
+    <td>${p.available === undefined ? '<span class="dot"></span>' : `<span class="dot ${p.available ? 'ok' : 'bad'}" title="${esc(p.error || '')}"></span>`}</td>
+    <td><b>${esc(p.name)}</b> <span class="tag">${esc(p.preset)}</span>${p.source === 'env' ? ' <span class="tag">.env</span>' : ''}${p.enabled ? '' : ' <span class="tag">disabled</span>'}</td>
+    <td class="mono small trunc" style="max-width:260px">${esc(p.base_url || '—')}</td><td class="mono small">${esc(p.model || '—')}</td>
+    <td><span class="tag ${p.trust === 'local' ? 'ok' : 'warn'}">${p.trust === 'local' ? 'local · raw ok' : 'remote · summaries'}</span></td>
+    <td class="small">${p.context_window ? p.context_window.toLocaleString() : (p.detected_window ? p.detected_window.toLocaleString() + ' (auto)' : 'auto')}</td><td class="small">${p.priority}</td>
+    <td style="text-align:right;white-space:nowrap"><button class="sm" data-ptest="${esc(p.key)}">Test</button>${p.source === 'db' ? ` <button class="sm" data-pedit="${esc(p.key)}">Edit</button> <button class="sm" data-ptoggle="${esc(p.key)}">${p.enabled ? 'Disable' : 'Enable'}</button> <button class="sm danger" data-pdel="${esc(p.key)}">✕</button>` : ''}</td></tr>`).join('');
+  $$('[data-ptest]').forEach(b => b.addEventListener('click', () => testProvider({ key: b.dataset.ptest })));
+  $$('[data-pedit]').forEach(b => b.addEventListener('click', () => providerModal(pv.providers.find(p => p.key === b.dataset.pedit))));
+  $$('[data-ptoggle]').forEach(b => b.addEventListener('click', async () => { const p = pv.providers.find(x => x.key === b.dataset.ptoggle); await patch('/ai/providers/' + p.key, { enabled: !p.enabled }).catch(fail); loadAIModels(); }));
+  $$('[data-pdel]').forEach(b => b.addEventListener('click', () => confirmModal('Delete provider?', 'The endpoint and its stored API key are removed.', async () => { await del('/ai/providers/' + b.dataset.pdel); loadAIModels(); })));
+  // llama.cpp
+  const L = gm.llamacpp;
+  $('#llama-status').innerHTML = `<div>Mode</div><div><span class="tag">${esc(L.mode)}</span> ${L.backend_selected ? '<span class="tag ok">selected local backend</span>' : '<span class="small dim">set LOCAL_AI_BACKEND=llamacpp to use it as the built-in local AI</span>'}</div>
+    <div>Active model</div><div class="mono">${esc(L.active_model || '—')}</div><div>Status</div><div>${L.available ? '<span class="tag ok">ready</span>' : '<span class="tag bad">not ready</span>'} ${L.base_url ? `<span class="mono small dim">${esc(L.base_url)}</span>` : ''}</div>
+    ${L.mode === 'managed' ? `<div>llama-server</div><div>${L.binary ? `<span class="mono small">${esc(L.binary)}</span> · ${L.running ? 'running' : 'stopped'}` : '<span style="color:var(--bad)">binary not found (LLAMACPP_SERVER_BIN)</span>'}</div>` : ''}
+    ${L.mode === 'embedded' ? `<div>llama-cpp-python</div><div>${L.llama_cpp_python ? 'installed' : '<span style="color:var(--bad)">not installed</span>'}</div>` : ''}`;
+  $('#llama-ctl').innerHTML = L.mode === 'managed' ? `<button class="sm" data-llama="start">Start</button> <button class="sm" data-llama="stop">Stop</button>` : '';
+  $$('[data-llama]').forEach(b => b.addEventListener('click', async () => { try { await post('/ai/llamacpp/' + b.dataset.llama); toast('llama-server ' + b.dataset.llama, 'ok'); setTimeout(loadAIModels, 1500); } catch (e) { fail(e); } }));
+  const gb = n => n ? (n / 1073741824).toFixed(2) + ' GB' : '—';
+  $('#t-gguf').innerHTML = gm.models.length ? `<tr><th>Model</th><th>Arch / quant</th><th>Context</th><th>Size</th><th>Source</th><th>Status</th><th style="text-align:right"></th></tr>` + gm.models.map(m => {
+      const ctx = Object.entries(m.meta || {}).find(([k]) => k.endsWith('.context_length'));
+      return `<tr><td><b>${esc(m.name)}</b> ${m.active ? '<span class="tag ok">active</span>' : ''}<div class="mono small dim trunc" style="max-width:300px">${esc(m.path)}</div></td>
+      <td class="small">${esc(m.meta['general.architecture'] || '—')} · ${esc(m.meta.quantization || '—')}</td><td class="small">${ctx ? Number(ctx[1]).toLocaleString() : '—'}</td><td class="small">${gb(m.size_bytes)}</td><td><span class="tag">${esc(m.source)}</span></td>
+      <td>${m.status === 'downloading' ? `<div class="small">${Math.round(m.progress * 100)}%</div><div class="bar" style="width:120px"><span style="width:${m.progress * 100}%;background:var(--accent)"></span></div>` : m.status === 'failed' ? `<span class="tag bad" title="${esc(m.error)}">failed</span>` : '<span class="tag ok">ready</span>'}</td>
+      <td style="text-align:right;white-space:nowrap">${m.status === 'ready' && !m.active ? `<button class="sm primary" data-gact="${m.id}">Activate</button> ` : ''}<button class="sm danger" data-gdel="${m.id}">✕</button></td></tr>`; }).join('')
+    : `<tr><td>${empty('No GGUF models yet', 'Download one from Hugging Face, upload a file or register a path below.')}</td></tr>`;
+  $$('[data-gact]').forEach(b => b.addEventListener('click', async () => { try { const r = await post(`/ai/models/${b.dataset.gact}/activate`); toast('Activated (' + r.mode + ')', 'ok'); loadAIModels(); } catch (e) { fail(e); } }));
+  $$('[data-gdel]').forEach(b => b.addEventListener('click', () => confirmModal('Remove model?', 'Downloaded/uploaded files are deleted from the models folder; registered paths are only unlisted.', async () => { await del('/ai/models/' + b.dataset.gdel); loadAIModels(); })));
+  $('#dl-hosts').textContent = 'Allowed hosts: ' + (gm.download_hosts.join(', ') || 'any https host') + (gm.hf_token ? ' · HF token configured' : '');
+  $('#up-info').textContent = 'Max ' + gm.max_upload_gb + ' GB · stored in ' + gm.models_dir;
+  if (gm.models.some(m => m.status === 'downloading') && state.view === 'aimodels') setTimeout(() => loadAIModels().catch(() => {}), 3000);
+}
+async function testProvider(body) {
+  toast('Testing connection…');
+  try { const r = await post('/ai/providers/test', body);
+    if (r.ok) toast(`OK · ${r.model || ''} · ${r.latency_ms} ms${r.models && r.models.length ? ' · ' + r.models.length + ' models' : ''}`, 'ok');
+    else toast('Failed: ' + (r.error || 'unknown'), 'err');
+    return r; } catch (e) { fail(e); }
+}
+async function providerModal(p) {
+  presetsCache = presetsCache || await api('/ai/presets');
+  const edit = !!p; p = p || { preset: 'lmstudio', priority: 50, supports_tools: true, enabled: true, context_window: 0 };
+  const pr = presetsCache[p.preset] || presetsCache.custom;
+  modal(edit ? 'Edit provider' : 'Add AI provider', `<div class="form">
+    ${edit ? '' : `<div><label>Preset</label><select id="pv-preset">${Object.entries(presetsCache).map(([k, v]) => `<option value="${k}" ${k === p.preset ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}</select></div>`}
+    <div class="row2"><div><label>Name</label><input id="pv-name" value="${esc(p.name || pr.label)}"></div><div><label>Trust</label><select id="pv-trust"><option value="">Auto (by address)</option><option value="local" ${p.trust === 'local' && edit ? 'selected' : ''}>Local – may read raw content</option><option value="remote" ${p.trust === 'remote' && edit ? 'selected' : ''}>Remote – summaries only</option></select></div></div>
+    <div><label>Base URL</label><input id="pv-url" class="mono" value="${esc(p.base_url || pr.base_url)}" placeholder="http://127.0.0.1:1234/v1"></div>
+    <div class="row2"><div><label>API key ${edit && p.api_key_set ? '(leave empty to keep)' : ''}</label><input id="pv-key" type="password" placeholder="${pr.key ? 'required' : 'optional'}"></div>
+      <div><label>Model</label><div style="display:flex;gap:6px"><input id="pv-model" class="mono" list="pv-models" value="${esc(p.model || '')}" placeholder="pick after loading"><button class="sm" id="pv-load" type="button">Load</button></div><datalist id="pv-models"></datalist></div></div>
+    <div class="row3"><div><label>Context window (tokens)</label><input id="pv-ctx" type="number" min="0" value="${p.context_window || 0}"><div class="hint">0 = auto-detect</div></div><div><label>Priority</label><input id="pv-prio" type="number" min="0" value="${p.priority}"><div class="hint">lower is tried first</div></div>
+      <div><label>Native tool calling</label><select id="pv-tools"><option value="1" ${p.supports_tools ? 'selected' : ''}>Yes</option><option value="0" ${p.supports_tools ? '' : 'selected'}>No – use JSON protocol</option></select></div></div></div>`,
+    [['Cancel', closeModal], ['Test', () => testProvider(edit ? { key: p.key, config: cfg() } : { config: cfg() })], [edit ? 'Save' : 'Add', async () => {
+      try { const c = cfg(); if (edit) await patch('/ai/providers/' + p.key, Object.assign({}, c, { preset: undefined, kind: undefined })); else await post('/ai/providers', c);
+        toast(edit ? 'Provider saved' : 'Provider added', 'ok'); closeModal(); loadAIModels(true); loadStatus(); } catch (e) { fail(e); } }, 'primary']]);
+  function cfg() { const t = $('#pv-trust').value; return { name: $('#pv-name').value.trim(), preset: edit ? p.preset : $('#pv-preset').value, base_url: $('#pv-url').value.trim(), api_key: $('#pv-key').value, model: $('#pv-model').value.trim(), trust: t || null, priority: +$('#pv-prio').value, supports_tools: $('#pv-tools').value === '1', context_window: +$('#pv-ctx').value || 0, enabled: true }; }
+  if (!edit) $('#pv-preset').addEventListener('change', e => { const x = presetsCache[e.target.value]; $('#pv-url').value = x.base_url; $('#pv-name').value = x.label; $('#pv-key').placeholder = x.key ? 'required' : 'optional'; });
+  $('#pv-load').addEventListener('click', async () => { const r = await testProvider(edit ? { key: p.key, config: cfg() } : { config: cfg() }); if (r && r.models) { $('#pv-models').innerHTML = r.models.map(m => `<option value="${esc(m)}">`).join(''); if (!$('#pv-model').value && r.models[0]) $('#pv-model').value = r.models[0]; } });
+}
+$('#btn-ai-add').addEventListener('click', () => providerModal(null));
+$('#btn-ai-refresh').addEventListener('click', () => loadAIModels(true).catch(fail));
+$$('#gguf-tabs .tab').forEach(t => t.addEventListener('click', () => { $$('#gguf-tabs .tab').forEach(x => x.classList.toggle('on', x === t)); $$('[data-pane]').forEach(p => p.style.display = p.dataset.pane === t.dataset.t ? '' : 'none'); }));
+$('#btn-hf-list').addEventListener('click', async () => {
+  const repo = $('#hf-repo').value.trim(); if (!repo) return; $('#hf-files').innerHTML = '<div class="small dim">Loading…</div>';
+  try { const files = await api('/ai/hf/files?repo=' + encodeURIComponent(repo));
+    $('#hf-files').innerHTML = files.length ? `<table>${files.map(f => `<tr><td class="mono small">${esc(f.file)}</td><td class="small">${(f.size / 1073741824).toFixed(2)} GB</td><td style="text-align:right"><button class="sm primary" data-hf="${esc(f.file)}">Download</button></td></tr>`).join('')}</table><div class="hint">Tip for small machines: Q4_K_M offers a good size/quality balance; 1–4B models run on CPU.</div>` : '<div class="small dim">No .gguf files in this repo.</div>';
+    $$('[data-hf]').forEach(b => b.addEventListener('click', async () => { try { await post('/ai/models/download', { repo, file: b.dataset.hf }); toast('Download started', 'ok'); loadAIModels(); } catch (e) { fail(e); } }));
+  } catch (e) { $('#hf-files').innerHTML = `<div class="small" style="color:var(--bad)">${esc(e.message)}</div>`; }
+});
+$('#btn-dl').addEventListener('click', async () => { const url = $('#dl-url').value.trim(); if (!url) return; try { await post('/ai/models/download', { url, name: $('#dl-name').value.trim() }); toast('Download started', 'ok'); $('#dl-url').value = ''; loadAIModels(); } catch (e) { fail(e); } });
+$('#btn-reg').addEventListener('click', async () => { const path = $('#reg-path').value.trim(); if (!path) return; try { await post('/ai/models/register', { path }); toast('Model registered', 'ok'); $('#reg-path').value = ''; loadAIModels(); } catch (e) { fail(e); } });
+$('#btn-up').addEventListener('click', () => {
+  const f = $('#up-file').files[0]; if (!f) return;
+  const xhr = new XMLHttpRequest(); const bar = $('#up-prog'); bar.style.display = ''; const span = $('span', bar);
+  xhr.open('PUT', API + '/ai/models/upload?filename=' + encodeURIComponent(f.name));
+  xhr.setRequestHeader('Content-Type', 'application/octet-stream'); if (key) xhr.setRequestHeader('X-API-Key', key);
+  xhr.upload.onprogress = e => { if (e.lengthComputable) { span.style.width = (100 * e.loaded / e.total) + '%'; $('#up-info').textContent = `Uploading ${(e.loaded / 1048576).toFixed(0)} / ${(e.total / 1048576).toFixed(0)} MB`; } };
+  xhr.onload = () => { bar.style.display = 'none'; if (xhr.status < 300) { toast('Model uploaded', 'ok'); loadAIModels(); } else { let m = xhr.status; try { m = JSON.parse(xhr.responseText).detail; } catch (e) {} toast('Upload failed: ' + m, 'err'); } };
+  xhr.onerror = () => { bar.style.display = 'none'; toast('Upload failed', 'err'); };
+  xhr.send(f);
+});
+
+
+// ------------------------------------------------------------- learning
+const LBL = { true_positive: 'True positive', false_positive: 'False positive', benign: 'Benign', needs_more_info: 'Needs more info' };
+const lr = { lessonStatus: 'active,proposed' };
+async function loadLearning() {
+  const [sum, les, terms, rls, cases] = await Promise.all([api('/learning/summary'), api('/lessons?status=' + lr.lessonStatus), api('/learning/terms'), api('/rules'), api('/eval/cases')]);
+  const fb = sum.feedback, ev = sum.eval || {};
+  $('#lr-kpis').innerHTML = [
+    { l: 'AI agreement', v: fb.agreement == null ? '—' : Math.round(fb.agreement * 100) + '%', s: `${fb.judged} judged verdict(s)` },
+    { l: 'Feedback', v: fb.explicit, s: Object.entries(fb.labels).map(([k, v]) => `${LBL[k] || k} ${v}`).join(' · ') || 'none yet' },
+    { l: 'Lessons', v: sum.lessons.active, s: `${sum.lessons.proposed} proposed · ${sum.lessons.disabled} disabled` },
+    { l: 'Suppression rules', v: sum.rules.active, s: `${sum.rules.proposed} proposed` },
+    { l: 'Regression cases', v: sum.eval_cases, s: ev.status === 'done' ? `last eval ${ev.passed}/${ev.total}` : (ev.status || 'never run') },
+  ].map(k => `<div class="card kpi"><div class="l">${k.l}</div><div class="v">${k.v}</div><div class="s">${esc(k.s)}</div></div>`).join('');
+  // eval
+  const res = ev.results || [];
+  $('#lr-eval').innerHTML = `<div class="toolbar" style="margin:0 0 10px"><span class="small dim">${ev.status === 'running' ? 'Running since ' + ago(ev.started) + '…' : ev.status === 'done' ? `Last run ${ago(ev.finished)} · ${esc(ev.provider)} · ${ev.lessons} lessons applied` : ev.error ? `<span style="color:var(--bad)">${esc(ev.error)}</span>` : 'Never run'}</span><span class="grow"></span>
+      <select id="lr-eval-prov" style="min-width:140px"><option value="auto">auto (local model)</option><option value="rules">rules only</option></select><button class="primary sm" id="lr-eval-run" ${ev.status === 'running' ? 'disabled' : ''}>Run evaluation</button></div>
+    ${ev.status === 'running' ? '<div class="progress"><span></span></div>' : ''}
+    ${res.length ? `<table><tr><th>Scenario</th><th>Result</th><th>Verdict</th><th>Conf.</th><th>Steps</th><th>Problems</th></tr>${res.map(r => `<tr><td class="small mono">${esc(r.scenario)}</td><td>${r.pass ? '<span class="tag ok">pass</span>' : '<span class="tag bad">fail</span>'}</td><td class="small">${esc(LBL[r.verdict] || r.verdict || '—')}</td><td class="small">${r.confidence ?? '—'}</td><td class="small">${r.steps}</td><td class="small dim">${esc((r.problems || []).join('; '))}</td></tr>`).join('')}</table>` : ''}`;
+  $('#lr-eval-run').addEventListener('click', async () => { try { await post('/eval/run?provider=' + $('#lr-eval-prov').value); toast('Evaluation started (runs in the background)', 'ok'); setTimeout(loadLearning, 1500); } catch (e) { fail(e); } });
+  if (ev.status === 'running' && state.view === 'learning') setTimeout(() => loadLearning().catch(() => {}), 5000);
+  // lessons
+  $('#t-lessons').innerHTML = les.length ? `<tr><th>Lesson</th><th>Verdict</th><th>Terms</th><th>Source</th><th>Used</th><th>👍/👎</th><th style="text-align:right"></th></tr>` + les.map(l => `<tr>
+      <td><b>${esc(l.title)}</b> ${l.status !== 'active' ? `<span class="tag ${l.status === 'proposed' ? 'warn' : ''}">${esc(l.status)}</span>` : ''}<div class="small muted">${esc(l.text)}</div>${l.source_alert_id ? `<a href="#" class="small" data-alert="${l.source_alert_id}">from alert #${l.source_alert_id}</a>` : ''}</td>
+      <td class="small">${esc(LBL[l.verdict] || '—')}</td><td>${(l.terms || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td>
+      <td><span class="tag ${l.source === 'ai_draft' ? 'acc' : ''}">${esc(l.source.replace('_', ' '))}</span></td><td class="small">${l.uses}</td><td class="small">${l.helpful}/${l.unhelpful}</td>
+      <td style="text-align:right;white-space:nowrap">${l.status === 'proposed' ? `<button class="sm primary" data-lst="${l.id}:active">Approve</button> ` : l.status === 'active' ? `<button class="sm" data-lst="${l.id}:disabled">Disable</button> ` : `<button class="sm" data-lst="${l.id}:active">Enable</button> `}<button class="sm" data-ledit="${l.id}">Edit</button> <button class="sm danger" data-ldel="${l.id}">✕</button></td></tr>`).join('')
+    : `<tr><td>${empty('No lessons yet', 'Disagree with an AI verdict and explain why — your explanation becomes a lesson the AI uses next time.')}</td></tr>`;
+  $$('[data-lst]').forEach(b => b.addEventListener('click', async () => { const [id, st] = b.dataset.lst.split(':'); await patch('/lessons/' + id, { status: st }).catch(fail); loadLearning(); }));
+  $$('[data-ldel]').forEach(b => b.addEventListener('click', () => confirmModal('Delete lesson?', 'The AI will no longer see it.', async () => { await del('/lessons/' + b.dataset.ldel); loadLearning(); })));
+  $$('[data-ledit]').forEach(b => b.addEventListener('click', () => lessonModal(les.find(l => l.id === +b.dataset.ledit))));
+  // terms
+  $('#t-terms').innerHTML = terms.length ? `<tr><th>Watch term</th><th>Alerts</th><th>True pos.</th><th>False pos.</th><th>Unlabelled</th><th>False-positive rate</th><th>Rules</th></tr>` + terms.map(t => `<tr>
+      <td><span class="tag acc">${esc(t.kind)}</span> <span class="mono">${esc(t.value)}</span> ${t.noisy ? '<span class="tag warn">noisy</span>' : ''}</td><td>${t.alerts}</td><td>${t.tp}</td><td>${t.fp}</td><td class="dim">${t.unlabeled}</td>
+      <td>${t.fp_rate == null ? '<span class="dim small">not enough labels</span>' : `<div style="display:flex;gap:6px;align-items:center"><div class="bar" style="width:90px"><span style="width:${t.fp_rate * 100}%;background:${t.fp_rate >= 0.6 ? 'var(--high)' : 'var(--ok)'}"></span></div><span class="small">${Math.round(t.fp_rate * 100)}%</span></div>`}</td><td class="small">${t.active_rules || ''}</td></tr>`).join('')
+    : `<tr><td>${empty('No watch terms')}</td></tr>`;
+  // rules
+  $('#t-rules').innerHTML = rls.length ? `<tr><th>Term</th><th>When page contains</th><th>Action</th><th>Why</th><th>Hits</th><th style="text-align:right"></th></tr>` + rls.map(r => `<tr>
+      <td class="mono">${esc(r.watch_value)} ${r.status !== 'active' ? `<span class="tag ${r.status === 'proposed' ? 'warn' : ''}">${esc(r.status)}</span>` : ''}</td>
+      <td>${(r.context_keywords || []).map(k => `<span class="tag">${esc(k)}</span>`).join('')}${r.host ? `<div class="mono small dim">${esc(defang(r.host))}</div>` : ''}</td>
+      <td class="small">${r.action === 'suppress' ? 'suppress alert' : 'downgrade → ' + esc(r.severity)}</td><td class="small muted" style="max-width:340px">${esc(r.reason)}</td><td class="small">${r.hits}</td>
+      <td style="text-align:right;white-space:nowrap">${r.status === 'proposed' ? `<button class="sm primary" data-rst="${r.id}:active">Approve</button> ` : r.status === 'active' ? `<button class="sm" data-rst="${r.id}:disabled">Disable</button> ` : `<button class="sm" data-rst="${r.id}:active">Enable</button> `}<button class="sm danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
+    : `<tr><td>${empty('No rules', 'When a watch term keeps producing false positives, a rule is proposed here for your approval.')}</td></tr>`;
+  $$('[data-rst]').forEach(b => b.addEventListener('click', async () => { const [id, st] = b.dataset.rst.split(':'); await patch('/rules/' + id, { status: st }).catch(fail); loadLearning(); }));
+  $$('[data-rdel]').forEach(b => b.addEventListener('click', async () => { await del('/rules/' + b.dataset.rdel).catch(fail); loadLearning(); }));
+  // cases & feedback
+  $('#lr-cases').innerHTML = cases.length ? `<table>${cases.map(c => `<tr><td class="small"><b>${esc(c.name)}</b>${c.note ? `<div class="dim">${esc(c.note.slice(0, 160))}</div>` : ''}</td><td>${c.expected.map(x => `<span class="tag">${esc(LBL[x] || x)}</span>`).join('')}</td><td style="text-align:right;white-space:nowrap"><label class="switch"><input type="checkbox" data-case="${c.id}" ${c.active ? 'checked' : ''}><span></span></label> <button class="sm danger" data-cdel="${c.id}">✕</button></td></tr>`).join('')}</table>` : '<div class="small dim">Every verdict you correct is frozen here as a test, so a model or prompt change cannot silently bring the mistake back.</div>';
+  $$('[data-case]').forEach(c => c.addEventListener('change', () => patch('/eval/cases/' + c.dataset.case, { active: c.checked }).catch(fail)));
+  $$('[data-cdel]').forEach(b => b.addEventListener('click', async () => { await del('/eval/cases/' + b.dataset.cdel).catch(fail); loadLearning(); }));
+  $('#lr-feedback').innerHTML = fb.recent.length ? fb.recent.map(f => `<div class="small" style="padding:6px 0;border-bottom:1px solid var(--line)">${f.agree === true ? '👍' : f.agree === false ? '👎' : '•'} <a href="#" data-alert="${f.alert_id}">alert #${f.alert_id}</a> ${f.label ? `→ <b>${esc(LBL[f.label] || f.label)}</b>` : ''} ${f.ai_verdict ? `<span class="dim">(AI: ${esc(LBL[f.ai_verdict] || f.ai_verdict)})</span>` : ''} <span class="tag">${esc(f.source)}</span> <span class="dim">${ago(f.created_at)}</span>${f.comment ? `<div class="muted">${esc(f.comment)}</div>` : ''}</div>`).join('') : '<div class="small dim">No feedback yet.</div>';
+}
+chips('#lr-lstatus', v => { lr.lessonStatus = v; loadLearning().catch(fail); });
+$('#btn-lr-propose').addEventListener('click', async () => { try { const r = await post('/rules/propose'); toast(r.created.length ? r.created.length + ' rule(s) proposed' : 'No noisy terms with enough labels yet', 'ok'); loadLearning(); } catch (e) { fail(e); } });
+$('#btn-lr-lesson').addEventListener('click', () => lessonModal(null));
+$('#btn-lr-rule').addEventListener('click', () => modal('New suppression rule', `<div class="form"><div class="row2"><div><label>Watch term</label><input id="ru-term"></div><div><label>Kind</label><select id="ru-kind"><option>keyword</option><option>brand</option><option>domain</option><option>email</option></select></div></div>
+    <div><label>When the page contains any of (comma-separated)</label><input id="ru-kw" placeholder="novel, book club, movie"></div>
+    <div class="row2"><div><label>Action</label><select id="ru-act"><option value="downgrade">Downgrade severity</option><option value="suppress">Suppress alert</option></select></div><div><label>Downgrade to</label><select id="ru-sev"><option>low</option><option>medium</option></select></div></div>
+    <div><label>Reason</label><input id="ru-why"></div></div>`, [['Cancel', closeModal], ['Create', async () => { try { await post('/rules', { watch_value: $('#ru-term').value.trim(), watch_kind: $('#ru-kind').value, context_keywords: $('#ru-kw').value.split(',').map(x => x.trim()).filter(Boolean), action: $('#ru-act').value, severity: $('#ru-sev').value, reason: $('#ru-why').value }); closeModal(); loadLearning(); } catch (e) { fail(e); } }, 'primary']]));
+function lessonModal(l) {
+  const e = !!l; l = l || { title: '', text: '', verdict: '', severity: '', terms: [] };
+  modal(e ? 'Edit lesson' : 'New lesson', `<div class="form"><div><label>Title (a rule of thumb)</label><input id="le-title" value="${esc(l.title)}" placeholder="e.g. 'Phoenix' in book/film threads is not our project"></div>
+    <div><label>Lesson</label><textarea id="le-text" placeholder="What should the analyst know when it sees a case like this?">${esc(l.text)}</textarea></div>
+    <div class="row3"><div><label>Usual verdict</label><select id="le-verdict"><option value="">—</option>${Object.entries(LBL).map(([k, v]) => `<option value="${k}" ${l.verdict === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div><label>Severity</label><select id="le-sev"><option value="">—</option>${['low','medium','high','critical'].map(x => `<option ${l.severity === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div><label>Applies to terms</label><input id="le-terms" value="${esc((l.terms || []).join(', '))}" placeholder="phoenix, acme"></div></div></div>`,
+    [['Cancel', closeModal], ['Save', async () => { const b = { title: $('#le-title').value.trim(), text: $('#le-text').value.trim(), verdict: $('#le-verdict').value || null, severity: $('#le-sev').value || null, terms: $('#le-terms').value.split(',').map(x => x.trim()).filter(Boolean) };
+      try { if (e) await patch('/lessons/' + l.id, b); else await post('/lessons', b); closeModal(); loadLearning(); toast('Lesson saved', 'ok'); } catch (er) { fail(er); } }, 'primary']]);
+}
+function feedbackBox(alertId, aiVerdict) {
+  return `<div class="section-t">Was the AI right?</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm" data-fb-agree="${alertId}">👍 Agree${aiVerdict ? ' (' + esc(LBL[aiVerdict] || aiVerdict) + ')' : ''}</button><button class="sm" data-fb-disagree="${alertId}">👎 Disagree / correct it</button></div>`;
+}
+function bindFeedback(root) {
+  $$('[data-fb-agree]', root).forEach(b => b.addEventListener('click', async () => { try { await post(`/alerts/${b.dataset.fbAgree}/feedback`, { agree: true }); toast('Thanks — recorded', 'ok'); loadBadges(); } catch (e) { fail(e); } }));
+  $$('[data-fb-disagree]', root).forEach(b => b.addEventListener('click', () => correctionModal(+b.dataset.fbDisagree)));
+}
+function correctionModal(alertId) {
+  modal('Correct the verdict', `<div class="form"><div class="row2"><div><label>Correct verdict</label><select id="co-label">${Object.entries(LBL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label>Severity</label><select id="co-sev"><option value="">unchanged</option>${['low','medium','high','critical'].map(x => `<option>${x}</option>`).join('')}</select></div></div>
+    <div><label>Why? (becomes a lesson the AI uses for similar cases)</label><textarea id="co-comment" placeholder="e.g. 'Phoenix' here is a novel title discussed in a book club, not our internal project."></textarea></div>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="co-lesson" checked style="width:auto"> Save my explanation as a lesson</label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="co-eval" checked style="width:auto"> Add this case to the regression tests</label>
+    <div><label>Also set the alert status</label><select id="co-status"><option value="">no change</option><option value="false_positive">False positive</option><option value="acknowledged">Acknowledged</option><option value="resolved">Resolved</option></select></div>
+    <div class="hint">Only your confirmed feedback is learned from — never page content or the AI's own output.</div></div>`,
+    [['Cancel', closeModal], ['✦ Let AI draft a lesson', async () => { try { const r = await post(`/alerts/${alertId}/draft-lesson`, { label: $('#co-label').value, comment: $('#co-comment').value }); toast('Draft lesson saved as "proposed" — review it under Learning', 'ok'); } catch (e) { fail(e); } }],
+     ['Save feedback', async () => { const c = $('#co-comment').value.trim();
+      try { const r = await post(`/alerts/${alertId}/feedback`, { agree: false, label: $('#co-label').value, severity: $('#co-sev').value || null, comment: c, create_lesson: $('#co-lesson').checked && !!c, add_to_eval: $('#co-eval').checked, set_status: $('#co-status').value || null });
+        toast('Feedback saved' + (r.lesson_id ? ' · lesson #' + r.lesson_id : '') + (r.eval_case_id ? ' · test case #' + r.eval_case_id : ''), 'ok'); closeModal(); closeDrawer(); loadBadges(); if (state.view === 'alerts') loadAlerts(); } catch (e) { fail(e); } }, 'primary']]);
 }
 
-// init
+// ------------------------------------------------------------- global search
+debounce('#gsearch', async () => {
+  const q = $('#gsearch').value.trim(); if (q.length < 2) return;
+  try { const r = await api('/search?q=' + encodeURIComponent(q));
+    drawer('Search', `“${q}”`, `
+      <div class="section-t">Alerts (${r.alerts.length})</div><div class="list">${r.alerts.map(alertItem).join('') || '<div class="dim small">—</div>'}</div>
+      <div class="section-t">Indicators (${r.indicators.length})</div>${r.indicators.map(i => `<div class="row" data-ind="${i.id}" style="padding:6px 0;cursor:pointer"><span class="tag">${esc(i.type)}</span> <span class="mono small">${esc(i.value)}</span></div>`).join('') || '<div class="dim small">—</div>'}
+      <div class="section-t">Pages (${r.pages.length})</div>${r.pages.map(p => `<div class="row" data-page="${p.id}" style="padding:6px 0;cursor:pointer">${sev(p.severity)} ${esc(p.title || '—')} <div class="mono small dim">${esc(defang(p.url))}</div></div>`).join('') || '<div class="dim small">—</div>'}`, []);
+    $$('#dr-body .item').forEach(el => el.addEventListener('click', () => openAlert(+el.dataset.id)));
+  } catch (e) { fail(e); }
+}, 450);
+
+// ------------------------------------------------------------- generic UI
+document.addEventListener('click', e => {
+  const p = e.target.closest('[data-page]'); if (p) { e.preventDefault(); openPage(+p.dataset.page).catch(fail); return; }
+  const i = e.target.closest('[data-ind]'); if (i) { e.preventDefault(); openInd(+i.dataset.ind).catch(fail); return; }
+  const r = e.target.closest('[data-run]'); if (r) { e.preventDefault(); openRun(+r.dataset.run).catch(fail); return; }
+  const ss = e.target.closest('[data-session]'); if (ss) { e.preventDefault(); an.sid = +ss.dataset.session; go('analyst'); }
+});
+function drawer(kicker, title, body, actions) {
+  $('#dr-kicker').textContent = kicker; $('#dr-title').textContent = title; $('#dr-body').innerHTML = body;
+  const f = $('#dr-foot'); f.innerHTML = ''; (actions || []).forEach(([l, fn, cls]) => { const b = document.createElement('button'); b.textContent = l; if (cls) b.className = cls; b.addEventListener('click', fn); f.appendChild(b); });
+  f.style.display = (actions || []).length ? '' : 'none';
+  $('#drawer').classList.add('open'); $('#drawer-bg').classList.add('open'); $('#dr-body').scrollTop = 0;
+}
+function closeDrawer() { $('#drawer').classList.remove('open'); $('#drawer-bg').classList.remove('open'); }
+$('#dr-close').addEventListener('click', closeDrawer); $('#drawer-bg').addEventListener('click', closeDrawer);
+function modal(title, body, actions) {
+  $('#md-title').textContent = title; $('#md-body').innerHTML = body; const f = $('#md-foot'); f.innerHTML = '';
+  actions.forEach(([l, fn, cls]) => { const b = document.createElement('button'); b.textContent = l; if (cls) b.className = cls; b.addEventListener('click', fn); f.appendChild(b); });
+  $('#modal-bg').classList.add('open'); const first = $('#md-body input:not([disabled]),#md-body select'); if (first) first.focus();
+}
+function closeModal() { $('#modal-bg').classList.remove('open'); }
+function confirmModal(title, text, fn) { modal(title, `<div class="muted">${esc(text)}</div>`, [['Cancel', closeModal], ['Delete', async () => { try { await fn(); closeModal(); } catch (e) { fail(e); } }, 'danger']]); }
+$('#md-close').addEventListener('click', closeModal);
+function chips(sel, fn) { $$(sel + ' .chip').forEach(c => c.addEventListener('click', () => { $$(sel + ' .chip').forEach(x => x.classList.remove('on')); c.classList.add('on'); fn(c.dataset.v); })); }
+function debounce(sel, fn, ms = 300) { let t; $(sel).addEventListener('input', () => { clearTimeout(t); t = setTimeout(fn, ms); }); }
+function pager(sel, total, st, fn) {
+  const el = $(sel); const from = st.offset + 1, to = Math.min(st.offset + PAGE, total);
+  el.innerHTML = `<span>${from}–${to} of ${total}</span><button class="sm" ${st.offset ? '' : 'disabled'} data-p="-1">‹ Prev</button><button class="sm" ${to < total ? '' : 'disabled'} data-p="1">Next ›</button>`;
+  $$('button', el).forEach(b => b.addEventListener('click', () => { st.offset = Math.max(0, st.offset + (+b.dataset.p) * PAGE); fn().catch(fail); }));
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDrawer(); closeModal(); }
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+  if (e.key === '/') { e.preventDefault(); $('#gsearch').focus(); }
+  if (e.key === 'n' || e.key === 'N') { e.preventDefault(); $('#btn-newcrawl').click(); }
+});
+async function refresh() { await loadStatus(); await loadBadges(); load(state.view); }
+window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (TITLES[v] && v !== state.view) go(v); });
 (async function init() {
   await loadStatus();
-  await loadOverview();
-  document.getElementById('last-refresh').textContent = 'loaded ' + new Date().toLocaleTimeString();
-  setInterval(() => { loadStatus(); const v = document.querySelector('.nav-item.active').dataset.view; if (v==='overview') loadOverview(); }, 20000);
+  loadBadges();
+  api('/targets').then(t => state.targets = t).catch(() => {});
+  const v = (location.hash || '#overview').slice(1); go(TITLES[v] ? v : 'overview');
+  setInterval(async () => { await loadStatus(); await loadBadges(); if (['overview', 'runs'].includes(state.view) && !$('#drawer').classList.contains('open')) load(state.view); }, 8000);
 })();
 </script>
 </body>

@@ -1,0 +1,19 @@
+[project]
+name = "darkweb-monitor"
+version = "0.1.0"
+description = "Self-hosted, defensive dark-web / leak monitoring with an AI agent layer"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
+ignore = ["E501", "B008", "B904"]

@@ -23,7 +23,7 @@ data/
 # Build artifacts
 build/
 dist/
-*.spec
+build/*.spec
 *.zip
 
 # Windows
@@ -34,3 +34,6 @@ Desktop.ini
 .DS_Store
 .vscode/
 .idea/
+
+# Local
+.claude/

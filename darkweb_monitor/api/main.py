@@ -2,24 +2,81 @@
 from __future__ import annotations
 
 import logging
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+import sys
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
-from config.settings import settings
+from config.settings import BASE_DIR, settings
+from .. import __version__
+from ..storage.db import init_db
 from .routes import router as api_router
+from .routes_ai import router as ai_router
+from .routes_learning import router as learning_router
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="DarkWeb Monitor", version="0.1.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+def _dashboard_path() -> Path:
+    candidates = [BASE_DIR / "dashboard" / "index.html",
+                  Path(getattr(sys, "_MEIPASS", BASE_DIR)) / "dashboard" / "index.html",
+                  Path(__file__).resolve().parent.parent.parent / "dashboard" / "index.html"]
+    for c in candidates:
+        if c.exists():
+            return c
+    return candidates[0]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    from ..runner import get_manager
+    n = get_manager().recover()
+    if n:
+        logger.warning("%d interrupted run(s) marked as failed", n)
+    from ..analyst.service import recover as recover_analyst
+    recover_analyst()
+    from ..ai.models import autostart
+    autostart()
+    from ..scheduler.jobs import start_scheduler, stop_scheduler
+    start_scheduler()
+    yield
+    stop_scheduler()
+    get_manager().shutdown()
+    from ..ai.llamacpp import managed
+    managed.stop()
+
+
+app = FastAPI(title="DarkWeb Monitor", version=__version__, lifespan=lifespan)
+if settings.list_of("CORS_ORIGINS"):
+    app.add_middleware(CORSMiddleware, allow_origins=settings.list_of("CORS_ORIGINS"),
+                       allow_methods=["GET", "POST", "PATCH", "DELETE"], allow_headers=["Content-Type", "X-API-Key"])
 app.include_router(api_router, prefix="/api")
+app.include_router(ai_router, prefix="/api")
+app.include_router(learning_router, prefix="/api")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    if request.url.path == "/":
+        resp.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+    return resp
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def index():
-    from pathlib import Path
-    p = Path(__file__).resolve().parent.parent.parent / "dashboard" / "index.html"
+    p = _dashboard_path()
     try:
         return p.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -28,5 +85,4 @@ def index():
 
 @app.get("/health")
 def health():
-    from .routes import _ai_status
-    return {"status": "ok", "ai": _ai_status()}
+    return {"status": "ok", "version": __version__}
