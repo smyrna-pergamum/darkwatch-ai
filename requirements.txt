@@ -1,0 +1,15 @@
+fastapi>=0.110
+uvicorn>=0.29
+requests>=2.31
+beautifulsoup4>=4.12
+PySocks>=1.7
+SQLAlchemy>=2.0
+pydantic>=2.6
+pydantic-settings>=2.2
+python-dotenv>=1.0
+openai>=1.30
+anthropic>=0.25
+apscheduler>=3.10
+httpx>=0.27
+jinja2>=3.1
+streamlit>=1.35

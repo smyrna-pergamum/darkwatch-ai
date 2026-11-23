@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DarkWeb Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* hallmark v2.0.0 · floor applied · theme: custom (inferred: utilitarian/technical, dark slate + cyan signal) */
+:root {
+  --bg: #0b0f14;
+  --bg-2: #11161d;
+  --surface: #161b22;
+  --surface-2: #1c222b;
+  --border: #2a313c;
+  --border-2: #39424f;
+  --text: #e6edf3;
+  --text-2: #b8c2cc;
+  --muted: #7d8793;
+  --accent: #39d0c4;
+  --accent-2: #2aa89e;
+  --accent-soft: rgba(57, 208, 196, 0.12);
+  --danger: #f85149;
+  --warn: #d29922;
+  --ok: #2ea043;
+  --info: #58a6ff;
+  --font: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, monospace;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --gap: 16px;
+  --container: 1280px;
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.wrap { max-width: var(--container); margin: 0 auto; padding: 0 var(--gap); }
+
+/* layout */
+.app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.sidebar {
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  padding: 18px 14px;
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.brand .mark { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: #0b0f14; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.brand .name { font-weight: 600; font-size: 15px; }
+.brand .sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  color: var(--text-2); font-size: 13px; font-weight: 500;
+  border: 1px solid transparent;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); border-color: rgba(57,208,196,0.25); }
+.nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.nav-item.active .dot { background: var(--accent); }
+.sidebar .status { margin-top: auto; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 12px; }
+.status-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+.status-row .k { color: var(--muted); }
+.status-row .v { font-family: var(--mono); font-size: 11px; }
+.status-row .v.ok { color: var(--ok); }
+.status-row .v.bad { color: var(--danger); }
+
+.main { padding: var(--gap) 24px 40px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--gap); }
+.topbar h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.topbar .meta { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.topbar .actions { display: flex; gap: 8px; }
+
+button.primary {
+  background: var(--accent); color: #0b0f14; border: 1px solid var(--accent);
+  padding: 8px 14px; border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+button.primary:active { transform: translateY(1px); }
+button.ghost {
+  background: transparent; color: var(--text-2); border: 1px solid var(--border);
+  padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+button.ghost:hover { background: var(--surface); color: var(--text); border-color: var(--border-2); }
+input, select, textarea {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 10px; border-radius: var(--radius-sm); font-size: 13px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* sections */
+.section { display: none; }
+.section.active { display: block; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.section-head h2 { font-size: 16px; font-weight: 600; margin: 0; }
+.section-head .hint { color: var(--muted); font-size: 12px; }
+
+/* stat cards */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: var(--gap); }
+.stat {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; position: relative; overflow: hidden;
+}
+.stat .label { color: var(--muted); font-size: 11px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.stat .value { font-size: 26px; font-weight: 700; margin-top: 4px; font-family: var(--mono); letter-spacing: -0.02em; }
+.stat .delta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stat.accent .value { color: var(--accent); }
+
+/* charts */
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: var(--gap); }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px;
+}
+.chart-card h3 { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: var(--text-2); }
+.chart-wrap { position: relative; height: 220px; }
+
+/* cards / panels */
+.panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: var(--gap);
+}
+.panel h3 { font-size: 13px; font-weight: 600; margin: 0 0 12px; color: var(--text-2); }
+
+/* tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+th { color: var(--muted); font-weight: 500; font-size: 11px; background: var(--bg-2); position: sticky; top: 0; }
+tr:last-child td { border-bottom: 0; }
+tr:hover td { background: var(--surface-2); }
+td.mono { font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+td.trunc { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* severity badges */
+.sev { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--mono); text-transform: lowercase; }
+.sev.critical { background: rgba(248,81,73,0.18); color: var(--danger); border: 1px solid rgba(248,81,73,0.35); }
+.sev.high { background: rgba(210,153,34,0.18); color: #e3b341; border: 1px solid rgba(210,153,34,0.35); }
+.sev.medium { background: rgba(88,166,255,0.14); color: var(--info); border: 1px solid rgba(88,166,255,0.3); }
+.sev.low { background: rgba(46,160,67,0.14); color: var(--ok); border: 1px solid rgba(46,160,67,0.3); }
+
+/* forms */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-actions { display: flex; gap: 8px; margin-top: 10px; }
+.field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+
+/* run summary */
+.summary-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.summary-text { color: var(--text); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
+.summary-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.summary-cols h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+.summary-cols ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12px; line-height: 1.6; }
+.summary-cols li { margin-bottom: 4px; }
+.summary-cols .none { color: var(--muted); font-size: 12px; }
+@media (max-width: 700px) { .summary-cols { grid-template-columns: 1fr; } }
+
+/* alert feed */
+.alert-item {
+  border-left: 3px solid var(--border-2); padding: 10px 12px; margin-bottom: 8px;
+  background: var(--bg-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.alert-item.critical { border-left-color: var(--danger); }
+.alert-item.high { border-left-color: #e3b341; }
+.alert-item.medium { border-left-color: var(--info); }
+.alert-item.low { border-left-color: var(--ok); }
+.alert-item .title { font-weight: 600; font-size: 13px; }
+.alert-item .desc { color: var(--text-2); font-size: 12px; margin-top: 2px; }
+.alert-item .meta { color: var(--muted); font-size: 11px; font-family: var(--mono); margin-top: 4px; }
+
+/* modal */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  max-width: 760px; width: 100%; max-height: 80vh; overflow: auto; padding: 20px;
+}
+.modal h3 { margin: 0 0 10px; font-size: 15px; }
+.modal pre { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 12px; color: var(--text-2); background: var(--bg-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 50vh; overflow: auto; }
+
+/* empty state */
+.empty { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 13px; }
+.empty .big { font-size: 28px; margin-bottom: 6px; opacity: 0.5; }
+
+/* responsive */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
+  .sidebar .status { margin-top: 0; width: 100%; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .charts { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">D</div>
+      <div>
+        <div class="name">DarkWeb Monitor</div>
+        <div class="sub">v0.1 · local dev</div>
+      </div>
+    </div>
+    <a class="nav-item active" data-view="overview"><span class="dot"></span>Overview</a>
+    <a class="nav-item" data-view="targets"><span class="dot"></span>Targets</a>
+    <a class="nav-item" data-view="crawl"><span class="dot"></span>Crawl</a>
+    <a class="nav-item" data-view="pages"><span class="dot"></span>Pages</a>
+    <a class="nav-item" data-view="iocs"><span class="dot"></span>IOCs</a>
+    <a class="nav-item" data-view="alerts"><span class="dot"></span>Alerts</a>
+    <div class="status" id="status-box">
+      <div class="status-row"><span class="k">Tor proxy</span><span class="v" id="st-tor">—</span></div>
+      <div class="status-row"><span class="k">AI routing</span><span class="v" id="st-ai">—</span></div>
+      <div class="status-row"><span class="k">Local model</span><span class="v" id="st-model">—</span></div>
+      <div class="status-row"><span class="k">Cloud</span><span class="v" id="st-cloud">—</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="view-title">Overview</h1>
+        <div class="meta" id="last-refresh">—</div>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="refreshAll()">Refresh</button>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="view-overview" class="section active">
+      <div class="stats" id="stats"></div>
+      <div class="charts">
+        <div class="chart-card"><h3>IOCs by type</h3><div class="chart-wrap"><canvas id="chart-ioc"></canvas></div></div>
+        <div class="chart-card"><h3>Alerts by severity</h3><div class="chart-wrap"><canvas id="chart-alert"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <h3>Recent alerts</h3>
+        <div id="recent-alerts"></div>
+      </div>
+    </section>
+
+    <!-- TARGETS -->
+    <section id="view-targets" class="section">
+      <div class="panel">
+        <h3>Add target</h3>
+        <div class="form-grid">
+          <div class="field full"><label>URL (.onion or clear)</label><input id="t-url" placeholder="https://example.onion" style="width:100%"></div>
+          <div class="field"><label>Label</label><input id="t-label" placeholder="brand-x" style="width:100%"></div>
+          <div class="field"><label>Keywords (comma)</label><input id="t-kw" placeholder="leak,brand,credential" style="width:100%"></div>
+        </div>
+        <div class="form-actions">
+          <button class="primary" onclick="addTarget()">Add target</button>
+        </div>
+      </div>
+      <div class="section-head"><h2>Targets</h2><span class="hint" id="targets-count"></span></div>
+      <div class="table-wrap"><table id="t-targets"></table></div>
+    </section>
+
+    <!-- CRAWL -->
+    <section id="view-crawl" class="section">
+      <div class="panel">
+        <h3>Run crawl now</h3>
+        <div class="form-grid">
+          <div class="field full"><label>Start URL</label><input id="c-url" placeholder="https://example.onion" style="width:100%"></div>
+          <div class="field"><label>Keywords (comma)</label><input id="c-kw" placeholder="leak,brand" style="width:100%"></div>
+          <div class="field"><label>Depth</label><input id="c-depth" type="number" value="1" min="0" max="5" style="width:100%"></div>
+        </div>
+        <div class="form-actions">
+          <button class="primary" onclick="runCrawl()">Start crawl</button>
+          <span class="hint" id="crawl-status"></span>
+        </div>
+      </div>
+      <div class="panel" id="run-summary-panel" style="display:none">
+        <div class="section-head" style="margin-bottom:10px">
+          <h3 style="margin:0">AI run summary</h3>
+          <span class="hint" id="run-summary-meta"></span>
+        </div>
+        <div id="run-summary-body"></div>
+      </div>
+      <div class="section-head"><h2>Crawl runs</h2></div>
+      <div class="table-wrap"><table id="t-runs"></table></div>
+    </section>
+
+    <!-- PAGES -->
+    <section id="view-pages" class="section">
+      <div class="section-head"><h2>Crawled pages</h2><span class="hint" id="pages-count"></span></div>
+      <div class="table-wrap"><table id="t-pages"></table></div>
+    </section>
+
+    <!-- IOCS -->
+    <section id="view-iocs" class="section">
+      <div class="section-head">
+        <h2>Indicators of compromise</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="ioc-filter" onchange="loadIocs()">
+            <option value="">all types</option>
+            <option value="ip">ip</option>
+            <option value="email">email</option>
+            <option value="hash">hash</option>
+            <option value="url">url</option>
+            <option value="onion">onion</option>
+            <option value="crypto">crypto</option>
+          </select>
+          <span class="hint" id="iocs-count"></span>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="t-iocs"></table></div>
+    </section>
+
+    <!-- ALERTS -->
+    <section id="view-alerts" class="section">
+      <div class="section-head"><h2>Alert feed</h2><span class="hint" id="alerts-count"></span></div>
+      <div id="alert-feed"></div>
+    </section>
+  </main>
+</div>
+
+<!-- page modal -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modal-title">Page</h3>
+    <div class="meta" id="modal-meta" style="color:var(--muted);font-size:12px;font-family:var(--mono);margin-bottom:10px"></div>
+    <pre id="modal-body"></pre>
+    <div class="form-actions" style="justify-content:flex-end">
+      <button class="ghost" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- run modal -->
+<div class="modal-backdrop" id="run-modal" onclick="if(event.target===this)closeRunModal()">
+  <div class="modal">
+    <h3 id="run-modal-title">Crawl run</h3>
+    <div class="meta" id="run-modal-meta" style="color:var(--muted);font-size:12px;font-family:var(--mono);margin-bottom:12px"></div>
+    <div id="run-modal-body"></div>
+    <div class="form-actions" style="justify-content:flex-end">
+      <button class="ghost" onclick="closeRunModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let iocChart = null, alertChart = null;
+
+// navigation
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    const v = el.dataset.view;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('view-' + v).classList.add('active');
+    document.getElementById('view-title').textContent = el.textContent.trim();
+    loadView(v);
+  });
+});
+
+function loadView(v) {
+  if (v === 'overview') loadOverview();
+  if (v === 'targets') loadTargets();
+  if (v === 'crawl') loadRuns();
+  if (v === 'pages') loadPages();
+  if (v === 'iocs') loadIocs();
+  if (v === 'alerts') loadAlerts();
+}
+
+async function api(path, opts) { const r = await fetch(API + path, opts); if (!r.ok) throw new Error(r.status); return r.json(); }
+
+function sevBadge(s) { return `<span class="sev ${s||'low'}">${s||'low'}</span>`; }
+function esc(s) { return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// status
+async function loadStatus() {
+  try {
+    const d = await api('/status');
+    const ai = d.ai || {};
+    document.getElementById('st-tor').textContent = d.tor_proxy || '—';
+    document.getElementById('st-tor').className = 'v ok';
+    document.getElementById('st-ai').textContent = ai.routing || '—';
+    document.getElementById('st-model').textContent = ai.local_model || '—';
+    document.getElementById('st-cloud').textContent = ai.cloud_available ? (ai.cloud_provider || 'on') : 'off';
+    document.getElementById('st-cloud').className = 'v ' + (ai.cloud_available ? 'ok' : 'bad');
+  } catch (e) { /* noop */ }
+}
+
+// overview
+async function loadOverview() {
+  const stats = await api('/stats');
+  const items = [
+    { k: 'targets', v: stats.targets, accent: false },
+    { k: 'pages', v: stats.pages, accent: false },
+    { k: 'iocs', v: stats.iocs, accent: true },
+    { k: 'alerts', v: stats.alerts, accent: stats.alerts > 0 },
+  ];
+  document.getElementById('stats').innerHTML = items.map(it =>
+    `<div class="stat ${it.accent?'accent':''}"><div class="label">${it.k}</div><div class="value">${it.v}</div></div>`
+  ).join('');
+
+  // ioc chart
+  const iocs = await api('/iocs?limit=500');
+  const byType = {};
+  iocs.forEach(i => { byType[i.type] = (byType[i.type]||0)+1; });
+  const iocLabels = Object.keys(byType);
+  const iocData = Object.values(byType);
+  if (iocChart) iocChart.destroy();
+  iocChart = new Chart(document.getElementById('chart-ioc'), {
+    type: 'bar',
+    data: { labels: iocLabels.length?iocLabels:['none'], datasets: [{ data: iocData.length?iocData:[0], backgroundColor: '#39d0c4', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7d8793', font: { size: 11 } }, grid: { color: '#2a313c' } }, y: { ticks: { color: '#7d8793', font: { size: 11 } }, grid: { color: '#2a313c' }, beginAtZero: true } } }
+  });
+
+  // alert chart
+  const alerts = await api('/alerts?limit=500');
+  const bySev = { critical:0, high:0, medium:0, low:0 };
+  alerts.forEach(a => { if (bySev[a.severity] !== undefined) bySev[a.severity]++; });
+  if (alertChart) alertChart.destroy();
+  alertChart = new Chart(document.getElementById('chart-alert'), {
+    type: 'doughnut',
+    data: { labels: ['critical','high','medium','low'], datasets: [{ data: [bySev.critical,bySev.high,bySev.medium,bySev.low], backgroundColor: ['#f85149','#e3b341','#58a6ff','#2ea043'], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#7d8793', font: { size: 11 }, boxWidth: 10 } } }, cutout: '62%' }
+  });
+
+  // recent alerts
+  const recent = alerts.slice(0, 6);
+  document.getElementById('recent-alerts').innerHTML = recent.length
+    ? recent.map(a => alertItemHtml(a)).join('')
+    : '<div class="empty"><div class="big">No alerts</div>Nothing tripped yet.</div>';
+}
+
+function alertItemHtml(a) {
+  return `<div class="alert-item ${a.severity}">
+    <div class="title">${esc(a.title)}</div>
+    <div class="desc">${esc((a.description||'').slice(0,180))}</div>
+    <div class="meta">${a.severity} · ${a.created_at}${a.page_id? ' · page '+a.page_id : ''}</div>
+  </div>`;
+}
+
+// targets
+async function loadTargets() {
+  const rows = await api('/targets');
+  document.getElementById('targets-count').textContent = rows.length + ' targets';
+  const t = document.getElementById('t-targets');
+  if (!rows.length) { t.innerHTML = '<tr><td colspan="5"><div class="empty">No targets yet. Add one above.</div></td></tr>'; return; }
+  t.innerHTML = '<tr><th>ID</th><th>URL</th><th>Label</th><th>Keywords</th><th>Last crawled</th></tr>' +
+    rows.map(r => `<tr>
+      <td class="mono">${r.id}</td>
+      <td class="trunc">${esc(r.url)}</td>
+      <td>${esc(r.label||'—')}</td>
+      <td class="mono">${esc(r.keywords||'—')}</td>
+      <td class="mono">${r.last_crawled||'never'}</td>
+    </tr>`).join('');
+}
+async function addTarget() {
+  const url = document.getElementById('t-url').value.trim();
+  if (!url) return;
+  await api('/targets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    url, label: document.getElementById('t-label').value, keywords: document.getElementById('t-kw').value
+  })});
+  document.getElementById('t-url').value=''; document.getElementById('t-label').value=''; document.getElementById('t-kw').value='';
+  loadTargets();
+}
+
+// crawl
+async function runCrawl() {
+  const url = document.getElementById('c-url').value.trim();
+  if (!url) return;
+  const st = document.getElementById('crawl-status');
+  st.textContent = 'running…';
+  try {
+    const r = await api('/crawl', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      url, keywords: document.getElementById('c-kw').value, depth: parseInt(document.getElementById('c-depth').value||'1')
+    })});
+    st.textContent = `done: ${r.pages_crawled} pages, ${r.iocs_found} iocs, ${r.alerts_raised} alerts`;
+    if (r.ai_summary) renderRunSummary({ id: r.run_id, pages: r.pages_crawled, iocs: r.iocs_found, alerts: r.alerts_raised, ai_summary: r.ai_summary });
+    loadRuns(); loadOverview();
+  } catch (e) { st.textContent = 'error: ' + e.message; }
+}
+function renderSummaryHtml(s) {
+  if (!s || !s.summary) return '<div class="empty">No AI summary available for this run.</div>';
+  const risk = s.risk_level || 'low';
+  const findings = Array.isArray(s.key_findings) ? s.key_findings : [];
+  const recs = Array.isArray(s.recommendations) ? s.recommendations : [];
+  return `<div class="summary-head"><span class="sev ${risk}">${esc(risk)} risk</span></div>
+    <p class="summary-text">${esc(s.summary)}</p>
+    <div class="summary-cols">
+      <div><h4>Key findings</h4>${findings.length ? '<ul>' + findings.map(f => `<li>${esc(f)}</li>`).join('') + '</ul>' : '<div class="none">none</div>'}</div>
+      <div><h4>Recommendations</h4>${recs.length ? '<ul>' + recs.map(f => `<li>${esc(f)}</li>`).join('') + '</ul>' : '<div class="none">none</div>'}</div>
+    </div>`;
+}
+function renderRunSummary(run) {
+  const panel = document.getElementById('run-summary-panel');
+  if (!run || !run.ai_summary) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  document.getElementById('run-summary-meta').textContent =
+    `run #${run.id} · ${run.pages} pages · ${run.iocs} iocs · ${run.alerts} alerts`;
+  document.getElementById('run-summary-body').innerHTML = renderSummaryHtml(run.ai_summary);
+}
+async function loadRuns() {
+  const rows = await api('/runs');
+  if (rows.length) renderRunSummary(rows[0]);
+  else document.getElementById('run-summary-panel').style.display = 'none';
+  const t = document.getElementById('t-runs');
+  if (!rows.length) { t.innerHTML = '<tr><td colspan="8"><div class="empty">No runs yet.</div></td></tr>'; return; }
+  t.innerHTML = '<tr><th>ID</th><th>Started</th><th>Finished</th><th>Pages</th><th>IOCs</th><th>Alerts</th><th>Risk</th><th>Status</th></tr>' +
+    rows.map(r => `<tr>
+      <td class="mono">${r.id}</td>
+      <td class="mono">${r.started}</td>
+      <td class="mono">${r.finished||'—'}</td>
+      <td class="mono">${r.pages}</td>
+      <td class="mono">${r.iocs}</td>
+      <td class="mono">${r.alerts}</td>
+      <td>${r.ai_summary ? sevBadge(r.ai_summary.risk_level) : '—'}</td>
+      <td><span class="sev ${r.status==='done'?'low':'medium'}">${r.status}</span></td>
+    </tr>`).join('');
+  t.querySelectorAll('tbody tr').forEach((tr, idx) => {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => openRun(rows[idx].id));
+  });
+}
+async function openRun(id) {
+  const r = await api('/runs/' + id);
+  document.getElementById('run-modal-title').textContent = 'Crawl run #' + r.id;
+  document.getElementById('run-modal-meta').textContent =
+    `${r.started} → ${r.finished||'—'} · ${r.pages} pages · ${r.iocs} iocs · ${r.alerts} alerts · ${r.status}`;
+  document.getElementById('run-modal-body').innerHTML = renderSummaryHtml(r.ai_summary);
+  document.getElementById('run-modal').classList.add('open');
+}
+function closeRunModal() { document.getElementById('run-modal').classList.remove('open'); }
+
+// pages
+async function loadPages() {
+  const rows = await api('/pages?limit=100');
+  document.getElementById('pages-count').textContent = rows.length + ' pages';
+  const t = document.getElementById('t-pages');
+  if (!rows.length) { t.innerHTML = '<tr><td colspan="5"><div class="empty">No pages crawled yet.</div></td></tr>'; return; }
+  t.innerHTML = '<tr><th>Title</th><th>URL</th><th>Severity</th><th>Summary</th><th>When</th></tr>' +
+    rows.map(r => `<tr>
+      <td class="trunc">${esc(r.title||'—')}</td>
+      <td class="trunc mono">${esc(r.url)}</td>
+      <td>${sevBadge(r.severity)}</td>
+      <td class="trunc">${esc(r.summary||'')}</td>
+      <td class="mono">${r.crawled_at}</td>
+    </tr>`).join('');
+  // click row to view
+  t.querySelectorAll('tbody tr').forEach((tr, idx) => {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => openPage(rows[idx].id));
+  });
+}
+async function openPage(id) {
+  const p = await api('/pages/' + id);
+  document.getElementById('modal-title').textContent = p.title || p.url;
+  document.getElementById('modal-meta').textContent = p.url + ' · ' + p.crawled_at + ' · ' + (p.severity||'');
+  document.getElementById('modal-body').textContent = (p.summary? p.summary+'\n\n---\n\n' : '') + (p.content||'');
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+// iocs
+async function loadIocs() {
+  const type = document.getElementById('ioc-filter').value;
+  const q = type ? ('?ioc_type=' + encodeURIComponent(type) + '&limit=200') : '?limit=200';
+  const rows = await api('/iocs' + q);
+  document.getElementById('iocs-count').textContent = rows.length + ' iocs';
+  const t = document.getElementById('t-iocs');
+  if (!rows.length) { t.innerHTML = '<tr><td colspan="5"><div class="empty">No IOCs extracted yet.</div></td></tr>'; return; }
+  t.innerHTML = '<tr><th>Type</th><th>Value</th><th>Confidence</th><th>Page</th><th>When</th></tr>' +
+    rows.map(r => `<tr>
+      <td class="mono">${esc(r.type)}</td>
+      <td class="mono trunc">${esc(r.value)}</td>
+      <td class="mono">${(r.confidence||0).toFixed(2)}</td>
+      <td class="mono">${r.page_id||'—'}</td>
+      <td class="mono">${r.created_at}</td>
+    </tr>`).join('');
+}
+
+// alerts
+async function loadAlerts() {
+  const rows = await api('/alerts?limit=100');
+  document.getElementById('alerts-count').textContent = rows.length + ' alerts';
+  const feed = document.getElementById('alert-feed');
+  if (!rows.length) { feed.innerHTML = '<div class="empty"><div class="big">No alerts</div>Nothing tripped yet. Run a crawl with matching keywords or high-severity content.</div>'; return; }
+  feed.innerHTML = rows.map(a => alertItemHtml(a)).join('');
+}
+
+async function refreshAll() {
+  await loadStatus();
+  const active = document.querySelector('.nav-item.active').dataset.view;
+  loadView(active);
+  document.getElementById('last-refresh').textContent = 'refreshed ' + new Date().toLocaleTimeString();
+}
+
+// init
+(async function init() {
+  await loadStatus();
+  await loadOverview();
+  document.getElementById('last-refresh').textContent = 'loaded ' + new Date().toLocaleTimeString();
+  setInterval(() => { loadStatus(); const v = document.querySelector('.nav-item.active').dataset.view; if (v==='overview') loadOverview(); }, 20000);
+})();
+</script>
+</body>
+</html>

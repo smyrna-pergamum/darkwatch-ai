@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local config (secrets)
+.env
+
+# Runtime data
+data/
+*.db
+*.sqlite
+*.log
+
+# Build artifacts
+build/
+dist/
+*.spec
+*.zip
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
