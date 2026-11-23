@@ -111,6 +111,7 @@ class Page(Base):
     ai_category = Column(String(32), default="unknown")
     ai_analyzed = Column(Boolean, default=False)
     content_purged = Column(Boolean, default=False)
+    change_summary = Column(JSON, default=dict)  # line diff vs. previous version
     target = relationship("Target", back_populates="pages")
     sightings = relationship("Sighting", back_populates="page", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="page")
@@ -168,6 +169,11 @@ class Alert(Base):
     triage = Column(JSON, default=dict)
     analyst_note = Column(Text, default="")
     analyst_session_id = Column(Integer, nullable=True)
+    # DarkWatch AI: threat taxonomy, explainable risk score, IncidentForge case reference
+    threat_class = Column(String(32), default="")
+    risk_score = Column(Float, default=0.0)
+    risk_factors = Column(JSON, default=list)
+    incident_ref = Column(String(128), default="")
     created_at = Column(DateTime, default=utcnow)
     last_seen = Column(DateTime, default=utcnow)
     page = relationship("Page", back_populates="alerts")

@@ -89,6 +89,7 @@ class Spider:
                 "text": parsed["text"], "links": parsed["links"],
                 "meta_description": parsed["meta_description"],
                 "status_code": res.status_code, "depth": d, "truncated": res.truncated,
+                "html": res.text if settings.FORUM_PARSING else "",
             }
             if self.on_page:
                 try:

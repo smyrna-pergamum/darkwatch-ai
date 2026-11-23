@@ -7,7 +7,7 @@ on:
   workflow_dispatch:     # rebuild assets for an existing tag
     inputs:
       tag:
-        description: "Existing tag to build, e.g. v0.1.0"
+        description: "Existing tag to build, e.g. v0.2.0"
         required: true
 
 permissions:
@@ -71,7 +71,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          name: DarkWeb Monitor ${{ env.VER }}
+          name: DarkWatch AI ${{ env.VER }}
           body_path: notes.md
           make_latest: true
           files: |

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import requests
 
 from config.settings import settings
+from .. import __version__
 from ..crawler.tor_client import proxies as tor_proxies
 from ..watchlist import WatchTerm
 
@@ -52,7 +53,7 @@ class Source:
     # helpers -------------------------------------------------------------
     def session(self, via_tor: bool | None = None) -> requests.Session:
         s = requests.Session()
-        s.headers["User-Agent"] = "darkweb-monitor/2.0 (+defensive monitoring)"
+        s.headers["User-Agent"] = f"darkwatch-ai/{__version__} (+defensive monitoring)"
         if via_tor if via_tor is not None else settings.EXTERNAL_API_VIA_TOR:
             s.proxies.update(tor_proxies())
         return s

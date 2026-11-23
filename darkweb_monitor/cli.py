@@ -31,7 +31,7 @@ def _print(obj) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    p = argparse.ArgumentParser(prog="darkweb-monitor", description="DarkWeb Monitor CLI")
+    p = argparse.ArgumentParser(prog="darkweb-monitor", description="DarkWatch AI CLI")
     sub = p.add_subparsers(dest="cmd")
 
     sub.add_parser("init", help="create / upgrade the database")

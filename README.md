@@ -1,24 +1,26 @@
 <div align="center">
 
-# DarkWeb Monitor
+# DarkWatch AI
 
-**Self-hosted, defensive dark-web & leak monitoring with a local-first AI analyst**
+**Open-source, AI-powered darknet monitoring & threat intelligence platform** — self-hosted, defensive, local-first
 
-[![Release](https://img.shields.io/badge/release-v0.1.0-7c5cff)](https://github.com/smyrna-pergamum/darkweb-monitor/releases)
+<sub>repository: <code>darkweb-monitor</code> · formerly "DarkWeb Monitor"</sub>
+
+[![Release](https://img.shields.io/badge/release-v0.2.0-7c5cff)](https://github.com/smyrna-pergamum/darkweb-monitor/releases)
 [![CI](https://github.com/smyrna-pergamum/darkweb-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/smyrna-pergamum/darkweb-monitor/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![Status](https://img.shields.io/badge/status-developer%20preview-orange)
 
-[Quick start](#quick-start) · [Features](#features) · [AI & local models](#ai--local-models) · [AI analyst](#ai-analyst-agent) · [Learning](#learning-from-feedback) · [Configuration](#configuration) · [Changelog](CHANGELOG.md) · [🇹🇷 Türkçe kılavuz](docs/KULLANIM_TR.md)
+[Quick start](#quick-start) · [Features](#features) · [Threat intelligence](#threat-intelligence-darkwatch) · [AI & local models](#ai--local-models) · [AI analyst](#ai-analyst-agent) · [Learning](#learning-from-feedback) · [Configuration](#configuration) · [Changelog](CHANGELOG.md) · [🇹🇷 Türkçe kılavuz](docs/KULLANIM_TR.md)
 
-<img src="docs/images/overview.png" alt="DarkWeb Monitor dashboard" width="900">
+<img src="docs/images/overview.png" alt="DarkWatch AI dashboard" width="900">
 
 </div>
 
 ---
 
-DarkWeb Monitor watches the places where an organisation's data tends to surface — Tor hidden
+DarkWatch AI watches the places where an organisation's data tends to surface — Tor hidden
 services, breach databases, leak and paste collections, ransomware leak sites — and tells you
 when **your** domains, brands, e-mail addresses or other assets show up.
 
@@ -26,6 +28,8 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 - **Understands** pages with a local AI model: summaries, severity, entities, validated indicators.
 - **Investigates** alerts with an AI analyst agent that uses tools, cites evidence and asks before acting.
 - **Learns** from your corrections — without retraining the model and without trusting page content.
+- **Profiles** threat actors, scores risk per organisation, preserves evidence with a verifiable chain of
+  custody and hands confirmed findings to **IncidentForge** for incident response.
 - **Runs on small local models** (GGUF via llama.cpp, Ollama, LM Studio, any OpenAI-compatible API):
   every input is chunked to fit the model's context window.
 
@@ -37,6 +41,7 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 
 - [Quick start](#quick-start)
 - [Features](#features)
+- [Threat intelligence (DarkWatch)](#threat-intelligence-darkwatch)
 - [Screenshots](#screenshots)
 - [AI & local models](#ai--local-models)
 - [AI analyst agent](#ai-analyst-agent)
@@ -52,7 +57,7 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 
 ### Option 1 — Release bundle (no Python needed)
 
-1. Download `darkweb-monitor-0.1.0-<windows|linux|macos>-<arch>.zip` from
+1. Download `darkweb-monitor-0.2.0-<windows|linux|macos>-<arch>.zip` from
    [Releases](https://github.com/smyrna-pergamum/darkweb-monitor/releases) and extract it.
 2. Start Tor (the `tor` service on port 9050, or Tor Browser on 9150 → set `TOR_PROXY_PORT=9150` in `.env`).
 3. Run:
@@ -85,7 +90,9 @@ GGUF_FILE=qwen2.5-3b-instruct-q4_k_m.gguf \
 
 ### First steps in the dashboard
 
-1. **Watchlist** — add your domains, brand names and key e-mail addresses. Everything else keys off this list.
+1. **Organizations** — create your company (tenant) and add its domains, brands, employee e-mails and
+   executives. They become watch terms; alerts, risk score and exposure are tracked per organization.
+   (The plain **Watchlist** still works for terms that belong to no tenant.)
 2. **AI & Models** — connect a local model (LM Studio, Ollama, llama.cpp/GGUF …). Optional: without AI
    everything still works on rules.
 3. **Targets** — add onion services you are authorised to monitor, choose a crawl mode and a schedule.
@@ -105,7 +112,82 @@ GGUF_FILE=qwen2.5-3b-instruct-q4_k_m.gguf \
 | **Learning** | Feedback → lessons, noise rules and regression tests → [details](#learning-from-feedback) |
 | **Models** | Any OpenAI-compatible API, Ollama, Anthropic, built-in llama.cpp with a GGUF manager → [details](#ai--local-models) |
 | **Sharing** | Export as CSV, JSON, **STIX 2.1**, **MISP**; push alerts to MISP |
+| **Organizations** | Multi-tenant: assets (domain, brand, employee e-mail, executive, IP, wallet …) per organization · tenant-scoped API keys · shared collection, per-tenant alerts · exposure view (leaked employee credentials and e-mails, ransomware listings, actors) |
+| **Threat intelligence** | Threat classification (12 classes, MITRE ATT&CK hints) · explainable 0–100 risk score per alert and per organization · threat-actor profiling from forum posts, contact handles and ransomware groups · entity relationship graph · onion page change diffs → [details](#threat-intelligence-darkwatch) |
+| **Evidence** | SHA-256-addressed snapshots, hash-chained chain of custody, integrity verification, legal hold, ZIP bundle with manifest and `SHA256SUMS` |
+| **IncidentForge** | One-click (or automatic) escalation of a finding with evidence, actors, indicators and risk into an IncidentForge case |
 | **Governance** | Audit log · retention policy · API-key auth · no wildcard CORS · CSP & security headers · automatic, non-destructive schema upgrades |
+
+## Threat intelligence (DarkWatch)
+
+### Coverage
+
+| Capability | How |
+|---|---|
+| Domain / company / brand monitoring | organization assets → watch terms (crawler, HIBP, IntelX, ransomware sites) |
+| Employee e-mail monitoring | `employee_email` assets; domain assets match every address at the domain; HIBP domain search; exposure view |
+| Credential leak detection | `email:password` combos (password masked and fingerprinted), HIBP, IntelX → `credential_leak` class |
+| Ransomware victim monitoring | ransomware.live victims → `ransomware` alerts + ransomware-group actor |
+| Darknet forum monitoring | forum parser (phpBB, XenForo, MyBB, vBulletin, SMF, Discourse, generic) → post authors and contacts |
+| Onion website change detection | content hash + line diff (`change_summary`), watched terms in added text |
+| IOC extraction | validated regex + AI extraction (hallucination-checked) |
+| AI-powered threat classification | local-AI page category + keyword, source and IOC signals → threat class with confidence and signals |
+| Threat actor profiling | actors, handles (forum, Telegram, Jabber, Tox, Session), venues, targets, activity, linked wallets, merge |
+| Entity relationship graph | `/api/graph` over organizations, assets, alerts, sites, indicators, actors, handles |
+| Risk scoring | explainable per-alert score; per-organization score with time decay |
+| Evidence preservation | content-addressed snapshots + hash-chained custody log |
+| Alerting | deduplicated alerts, triage, notifications (Discord, Slack, Teams, Telegram, e-mail, webhook) |
+| REST API | `/api/...` (OpenAPI at `/docs`) |
+| Multi-tenant organizations | organizations, asset links, tenant API keys scoped to `/api/orgs/{id}/…` |
+
+### Risk scoring
+
+Every alert gets a **0–100 risk score** with the factors that produced it: severity, threat-class weight
+(ransomware and initial-access sales weigh most), the kind of asset matched, the AI triage verdict,
+recurrence and whether a known threat actor is linked. An **organization's score** starts from its worst
+open alert and adds the others with diminishing returns; each alert's weight halves every
+`RISK_HALF_LIFE_DAYS` since it was last seen, and exposed employee credentials add to it.
+
+### Evidence & chain of custody
+
+Alerts at or above `EVIDENCE_AUTO_SEVERITY` are captured automatically (or press *Capture evidence*).
+An item is a canonical JSON record — URL, title, masked page text, hashes, run, timestamps, collector —
+stored gzip-compressed under `data/evidence/` and addressed by the SHA-256 of the uncompressed record.
+Capture, verification, download, export, legal hold and escalation are appended to a custody log in
+which every entry hashes the previous one. `POST /api/evidence/{id}/verify` re-hashes the file and walks
+the chain, so a modified file or log entry is reported. Page retention does not delete evidence.
+
+### Multi-tenant API
+
+| Who | Key | Can reach |
+|---|---|---|
+| Admin | `API_KEY` from `.env` | everything |
+| Tenant | `dwk_…` from *Organizations → + Tenant API key* (stored hashed, shown once) | `/api/orgs/{its id}` and its `/assets`, `/alerts`, `/risk`, `/exposure`, `/evidence` |
+
+```bash
+curl -H "X-API-Key: dwk_…" http://127.0.0.1:8000/api/orgs/1/exposure
+```
+
+Tenants can only register values nobody monitors yet (an administrator assigns shared or already-watched
+domains, so a tenant cannot claim another company's assets and inherit its alerts), cannot add `regex` or
+`keyword` assets, and see only their own matches on alerts shared with other organizations.
+
+### IncidentForge integration
+
+DarkWatch covers the *outside-in* view (what is leaked or offered about you); IncidentForge covers
+incident response and forensics. *→ IncidentForge* on an alert (or `INCIDENTFORGE_AUTO_SEVERITY`) sends
+one case with schema `darkwatch.incident/1`:
+
+```
+POST {INCIDENTFORGE_URL}{INCIDENTFORGE_INCIDENT_PATH}      Authorization: Bearer {INCIDENTFORGE_API_KEY}
+{ "schema", "external_id", "title", "severity", "priority", "category", "risk_score", "risk_factors",
+  "organizations", "matched_assets", "threat_actors", "indicators", "ai_triage",
+  "evidence": [{ "sha256", "custody": [...], "content_b64" }], ... }
+```
+
+The returned `id` is stored on the alert (`incident_ref`), and an `escalated` entry is added to each
+evidence item's custody log. `GET /api/alerts/{id}/incidentforge/preview` shows the payload without
+evidence content.
 
 ## Screenshots
 
@@ -226,6 +308,11 @@ All settings live in `.env` (see [`.env.example`](.env.example) for the full lis
 | `HIBP_API_KEY`, `INTELX_API_KEY` | — | breach and leak sources |
 | `ALERT_WEBHOOK_URL`, `TELEGRAM_*`, `SMTP_*` | — | notifications |
 | `API_KEY` | — | required when the server listens beyond localhost |
+| `EVIDENCE_AUTO_SEVERITY` | `high` | capture evidence automatically for alerts at or above this (`""` = off) |
+| `RISK_HALF_LIFE_DAYS` | `14` | an alert's weight in the organization score halves every N days |
+| `ACTOR_PROFILING`, `FORUM_PARSING` | `true` | forum-author, contact and ransomware-group profiling |
+| `INCIDENTFORGE_URL`, `INCIDENTFORGE_API_KEY` | — | IncidentForge escalation target |
+| `INCIDENTFORGE_AUTO_SEVERITY` | — | open IncidentForge cases automatically at or above this |
 
 ## CLI
 
@@ -255,16 +342,19 @@ Run with `python -m darkweb_monitor.cli …` (or the `DarkWebMonitor` executable
                   │          └─ frontier: BFS │ Smart │ Agent (LLM)
                   ├─ mask secrets · change detection · IOC extraction
                   ├─ watchlist ─► suppression rules ─► AIRouter (local ⇄ remote, chunking)
+                  ├─ forum parser ─► threat actors (handles · sightings · profiles)
                   ├─ indicators (+ KEV / Feodo) ─► alerts (dedup · triage · notify · MISP)
+                  │      └─ intel hook: classify · tenant link · risk · evidence · IncidentForge
                   └─ planner ─► tasks
  sources ─► HIBP · IntelX · ransomware.live · Ahmia ─► alerts
  analyst ─► harness (event log · tools · approvals · compaction) ─► reports ◄─ lessons
- FastAPI (/api) ─► dashboard
+ organizations ─► assets ─► watch terms      evidence ─► custody chain ─► bundle / IncidentForge
+ FastAPI (/api; tenants: /api/orgs/{id}) ─► dashboard (+ /ui/intel.js: orgs, actors, graph, evidence)
 ```
 
 ## Responsible use
 
-Use DarkWeb Monitor only for **authorised, defensive** monitoring of your own organisation's assets,
+Use DarkWatch AI only for **authorised, defensive** monitoring of your own organisation's assets,
 from an isolated environment and with written approval.
 
 - Keep `TOR_REQUIRED=true` and the default `same_site` scope unless you have a reason not to.
@@ -287,7 +377,7 @@ ruff check . && pytest -q
 
 Built along the lines of the internal *"Darkweb Monitoring Araştırması"* brief (multiple sources,
 normalisation, provenance, STIX/MISP, GDPR-minded handling). Not yet included:
-OpenCTI connector · TAXII 2.1 server · OpenSearch full-text index · Telegram and paste collectors ·
+AI-written actor narratives · OpenCTI connector · TAXII 2.1 server · OpenSearch full-text index · Telegram and paste collectors ·
 YARA / Sigma rule generation · Grafana / TheHive integration · LoRA fine-tuning from collected feedback.
 
 ## License

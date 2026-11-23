@@ -5,6 +5,26 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/) (0.x = developer preview: breaking
 changes possible between minor versions).
 
+## [0.2.0] - 2026-11-23 — DarkWatch AI
+
+The project is now presented as **DarkWatch AI** (package, CLI and repository names are unchanged).
+
+### Added
+- **Multi-tenant organizations**: organizations own assets (domain, brand, employee e-mail, executive, keyword, IP, wallet, regex) that become watch terms; several tenants can share one watch item. Alerts are attributed to the tenants whose assets matched, with backfill when assets are added later. Tenant API keys (`dwk_…`, stored hashed) only open `/api/orgs/{id}/…`. Bulk asset import and an exposure view (leaked employee credentials and e-mails, ransomware listings, actors).
+- **Threat classification**: 12 classes from the local-AI page category plus keyword, source and indicator signals, with confidence, signals and MITRE ATT&CK hints.
+- **Risk scoring**: explainable 0–100 score per alert; per-organization score (worst open alert plus diminishing additions, time decay, exposed credentials), refreshed on every alert and every 6 hours.
+- **Evidence preservation**: content-addressed, compressed snapshots; hash-chained chain of custody (captured, verified, exported, hold, escalated); integrity verification; legal hold; ZIP bundle with manifest and `SHA256SUMS`; automatic capture for alerts at or above `EVIDENCE_AUTO_SEVERITY`.
+- **Darknet forum monitoring and threat actor profiling**: forum post parser (phpBB, XenForo, MyBB, vBulletin, SMF, Discourse, generic). Authors of posts that mention watched assets become actors with handles (forum, Telegram, Jabber, Tox, Session); ransomware groups become actors; shared contacts link actors; profiles with venues, targets, activity and linked wallets; merge.
+- **Entity relationship graph** (`/api/graph`) with a dashboard view.
+- **Onion change detection** with line diffs (`/api/pages/{id}/changes`).
+- **IncidentForge bridge**: escalate an alert with evidence, actors, indicators and risk as a `darkwatch.incident/1` case, manually or via `INCIDENTFORGE_AUTO_SEVERITY`.
+- Dashboard: Organizations, Threat actors, Entity graph and Evidence views; a risk column and an intelligence panel on alerts; an intelligence card on the overview.
+
+### Security
+- Tenant keys cannot claim values that are already monitored, cannot add regex / keyword assets and only see their own matches on shared alerts. Domains are validated strictly (no bare TLDs or public suffixes) and every LIKE pattern is escaped.
+- Enrichment steps run in savepoints; IncidentForge calls run outside database transactions.
+- The custody chain is anchored (head hash and length on the evidence item) and the first entry binds the item's metadata, so truncation or re-pointing is detected.
+
 ## [0.1.0] - 2026-11-23
 
 First tagged release: a full rewrite of the initial prototype.
