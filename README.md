@@ -4,10 +4,10 @@
 
 **Open-source, AI-powered darknet monitoring & threat intelligence platform** — self-hosted, defensive, local-first
 
-<sub>repository: <code>darkweb-monitor</code> · formerly "DarkWeb Monitor"</sub>
+<sub>repository: <code>darkwatch-ai</code> · Python package: <code>darkweb_monitor</code> · formerly "DarkWeb Monitor"</sub>
 
-[![Release](https://img.shields.io/badge/release-v0.2.0-7c5cff)](https://github.com/smyrna-pergamum/darkweb-monitor/releases)
-[![CI](https://github.com/smyrna-pergamum/darkweb-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/smyrna-pergamum/darkweb-monitor/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v0.2.0-7c5cff)](https://github.com/smyrna-pergamum/darkwatch-ai/releases)
+[![CI](https://github.com/smyrna-pergamum/darkwatch-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/smyrna-pergamum/darkwatch-ai/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![Status](https://img.shields.io/badge/status-developer%20preview-orange)
@@ -58,7 +58,7 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 ### Option 1 — Release bundle (no Python needed)
 
 1. Download `darkweb-monitor-0.2.0-<windows|linux|macos>-<arch>.zip` from
-   [Releases](https://github.com/smyrna-pergamum/darkweb-monitor/releases) and extract it.
+   [Releases](https://github.com/smyrna-pergamum/darkwatch-ai/releases) and extract it.
 2. Start Tor (the `tor` service on port 9050, or Tor Browser on 9150 → set `TOR_PROXY_PORT=9150` in `.env`).
 3. Run:
    ```bash
@@ -70,7 +70,7 @@ Configuration lives in the `.env` file next to the executable; data is stored in
 ### Option 2 — From source
 
 ```bash
-git clone https://github.com/smyrna-pergamum/darkweb-monitor.git && cd darkweb-monitor
+git clone https://github.com/smyrna-pergamum/darkwatch-ai.git && cd darkwatch-ai
 cp .env.example .env
 pip install -r requirements.txt
 python -m darkweb_monitor.cli init
