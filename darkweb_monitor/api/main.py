@@ -8,14 +8,16 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from config.settings import BASE_DIR, settings
 from .. import __version__
 from ..storage.db import init_db
 from .routes import router as api_router
 from .routes_ai import router as ai_router
+from .routes_intel import router as intel_router
 from .routes_learning import router as learning_router
+from .routes_orgs import router as orgs_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -51,13 +53,16 @@ async def lifespan(app: FastAPI):
     managed.stop()
 
 
-app = FastAPI(title="DarkWeb Monitor", version=__version__, lifespan=lifespan)
+app = FastAPI(title="DarkWatch AI", version=__version__, lifespan=lifespan,
+              description="AI-powered darknet monitoring & threat intelligence platform")
 if settings.list_of("CORS_ORIGINS"):
     app.add_middleware(CORSMiddleware, allow_origins=settings.list_of("CORS_ORIGINS"),
                        allow_methods=["GET", "POST", "PATCH", "DELETE"], allow_headers=["Content-Type", "X-API-Key"])
 app.include_router(api_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
 app.include_router(learning_router, prefix="/api")
+app.include_router(intel_router, prefix="/api")
+app.include_router(orgs_router, prefix="/api")
 
 
 @app.middleware("http")
@@ -80,7 +85,21 @@ def index():
     try:
         return p.read_text(encoding="utf-8")
     except FileNotFoundError:
-        return "<h1>DarkWeb Monitor</h1><p>Dashboard missing.</p>"
+        return "<h1>DarkWatch AI</h1><p>Dashboard missing.</p>"
+
+
+_UI_FILES = {"intel.js": "application/javascript; charset=utf-8"}
+
+
+@app.get("/ui/{name}", include_in_schema=False)
+def ui_asset(name: str):
+    if name not in _UI_FILES:  # fixed allow-list: no path traversal
+        return Response(status_code=404)
+    p = _dashboard_path().parent / name
+    try:
+        return Response(p.read_bytes(), media_type=_UI_FILES[name], headers={"Cache-Control": "no-cache"})
+    except FileNotFoundError:
+        return Response(status_code=404)
 
 
 @app.get("/health")

@@ -73,3 +73,16 @@ def test_v1_database_is_upgraded_in_place(tmp_path):
         t = s.query(Target).one()
         assert t.label == "legacy" and t.approval == "approved" and t.crawl_mode == "standard"
         assert s.query(Alert).one().status == "new"
+
+
+def test_release_versions_are_consistent():
+    """pyproject, package, README badge and the CHANGELOG head must name the same release."""
+    import re
+    from pathlib import Path
+    from darkweb_monitor import __version__
+    root = Path(__file__).resolve().parent.parent
+    assert re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(), re.M).group(1) == __version__
+    assert f"release-v{__version__}-" in (root / "README.md").read_text(encoding="utf-8")
+    assert f"darkweb-monitor-{__version__}-" in (root / "README.md").read_text(encoding="utf-8")
+    head = re.search(r"^## \[([^\]]+)\]", (root / "CHANGELOG.md").read_text(encoding="utf-8"), re.M).group(1)
+    assert head == __version__

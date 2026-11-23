@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.orm import Session, sessionmaker
 
 from config.settings import ensure_dirs, settings
+from . import models_intel  # noqa: F401  (registers intel tables on Base)
 from .models import AuditLog, Base
 
 logger = logging.getLogger(__name__)

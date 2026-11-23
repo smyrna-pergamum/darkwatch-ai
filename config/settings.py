@@ -186,6 +186,21 @@ class Settings(BaseSettings):
     MISP_VERIFY_SSL: bool = True
     MISP_AUTO_PUSH_SEVERITY: str = ""  # e.g. "high" -> push alerts >= high automatically
 
+    # --- DarkWatch AI: evidence, risk, actors, IncidentForge ------------------
+    EVIDENCE_ENABLED: bool = True
+    EVIDENCE_DIR: str = ""  # default: <data>/evidence
+    EVIDENCE_AUTO_SEVERITY: str = "high"  # capture evidence automatically for alerts >= this ("" = off)
+    RISK_HALF_LIFE_DAYS: float = 14.0  # alert contribution to org risk halves every N days
+    RISK_WINDOW_DAYS: int = 90
+    ACTOR_PROFILING: bool = True  # extract forum authors / contacts / ransomware groups as actors
+    FORUM_PARSING: bool = True
+    INCIDENTFORGE_URL: str = ""  # e.g. https://incidentforge.local
+    INCIDENTFORGE_API_KEY: str = ""
+    INCIDENTFORGE_INCIDENT_PATH: str = "/api/v1/incidents"
+    INCIDENTFORGE_VERIFY_TLS: bool = True
+    INCIDENTFORGE_AUTO_SEVERITY: str = ""  # e.g. "critical" -> open incidents automatically
+    INCIDENTFORGE_INCLUDE_EVIDENCE: bool = True  # attach evidence content (base64) to the case
+
     # --- Scheduler -----------------------------------------------------------
     SCHEDULER_ENABLED: bool = True
     DEFAULT_INTERVAL_MIN: int = 360

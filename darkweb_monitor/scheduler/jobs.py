@@ -47,6 +47,13 @@ def _learning() -> None:
     propose()
 
 
+def _org_risk() -> None:
+    from ..intel.risk import refresh_all
+    from ..storage.db import session_scope
+    with session_scope() as s:
+        logger.info("org risk refreshed for %d organisation(s)", refresh_all(s))
+
+
 def _feeds() -> None:
     from ..sources.feeds import refresh_feeds
     logger.info("feeds refreshed: %s", refresh_feeds())
@@ -127,6 +134,8 @@ def start_scheduler() -> BackgroundScheduler | None:
                        max_instances=1, coalesce=True)
     _scheduler.add_job(_learning, IntervalTrigger(hours=24), id="learning", name="propose suppression rules",
                        next_run_time=utcnow() + timedelta(minutes=10))
+    _scheduler.add_job(_org_risk, IntervalTrigger(hours=6), id="org-risk", name="organisation risk scores",
+                       max_instances=1, coalesce=True, next_run_time=utcnow() + timedelta(minutes=3))
     _scheduler.add_job(apply_retention, IntervalTrigger(hours=24), id="retention", name="data retention",
                        next_run_time=utcnow() + timedelta(minutes=5))
     _scheduler.add_job(_sources, IntervalTrigger(minutes=max(60, settings.SOURCES_INTERVAL_MIN)),

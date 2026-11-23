@@ -11,6 +11,7 @@ import logging
 import requests
 
 from config.settings import settings
+from .. import __version__
 from ..storage.db import session_scope
 from ..storage.models import FeedEntry, Indicator, utcnow
 
@@ -20,7 +21,7 @@ FEED_TAG = {"kev": "kev-exploited", "feodo": "feodo-c2"}
 
 def _http() -> requests.Session:
     s = requests.Session()
-    s.headers["User-Agent"] = "darkweb-monitor/2.0"
+    s.headers["User-Agent"] = f"darkwatch-ai/{__version__}"
     return s
 
 

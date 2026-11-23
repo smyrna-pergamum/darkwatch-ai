@@ -15,10 +15,12 @@ from .ai.agent import AgentFrontier
 from .ai.base import AIError
 from .ai.router import get_router
 from .alerts.service import dedup_key, raise_alert
+from .crawler.forum import parse_forum
 from .crawler.frontier import BFSFrontier, SmartFrontier
 from .crawler.parsers import host_of, is_onion, is_valid_onion_v3, normalize_url
 from .crawler.spider import CrawlCancelled, Spider
 from .crawler.tor_client import TorUnavailable, ensure_tor, new_identity
+from .intel.changes import diff_summary
 from .ioc.extractor import content_hash, extract as extract_ioc, mask_credentials
 from .learning.rules import apply as apply_rules
 from .sources.feeds import feed_tags_for
@@ -100,6 +102,25 @@ def heuristic_run_summary(start_url: str, pages: list, alerts: list, iocs_found:
     }
 
 
+def _profile_forum_authors(s, page: dict, page_id: int, alert, terms: list[str]) -> None:
+    """Forum monitoring: attribute posts that mention watched assets to actors."""
+    if not (settings.FORUM_PARSING and settings.ACTOR_PROFILING and page.get("html")):
+        return
+    try:
+        posts = parse_forum(page["html"])
+        if not posts:
+            return
+        from .intel.actors import ingest_forum_posts
+        from .intel.hooks import after_actor_link
+        with s.begin_nested():  # a race on a new nickname only rolls back the profiling
+            ids = ingest_forum_posts(s, posts, host=host_of(page["url"]), page_id=page_id,
+                                     watch_terms=terms, alert_id=alert.id)
+        if ids:
+            after_actor_link(s, alert)
+    except Exception:  # noqa: BLE001 - profiling never breaks the crawl
+        logger.exception("forum profiling failed for %s", page.get("url"))
+
+
 def run_crawl(start_url: str | None = None, keywords: str = "", depth: int | None = None,
               *, target_id: int | None = None, run_id: int | None = None,
               mode: str | None = None, goal: str | None = None, max_pages: int | None = None,
@@ -165,6 +186,7 @@ def run_crawl(start_url: str | None = None, keywords: str = "", depth: int | Non
         with session_scope() as s:
             p = s.query(Page).filter_by(url=url).order_by(Page.id.desc()).first()
             unchanged = bool(p and p.content_hash == h)
+            old_content = (p.content or "") if (p is not None and not unchanged and not p.content_purged) else ""
             if p is None:
                 p = Page(target_id=tid, url=url, first_seen=utcnow())
                 s.add(p)
@@ -172,6 +194,8 @@ def run_crawl(start_url: str | None = None, keywords: str = "", depth: int | Non
             p.changed = not unchanged
             p.content_hash, p.run_id, p.target_id = h, run_id, tid
             p.title, p.status_code, p.depth, p.crawled_at = title[:500], page.get("status_code"), page.get("depth", 0), utcnow()
+            if old_content:
+                p.change_summary = diff_summary(old_content, text, watch_labels)
             if settings.STORE_PAGE_CONTENT:
                 p.content, p.content_purged = text[: settings.MAX_STORED_CONTENT_CHARS], False
             s.flush()
@@ -255,11 +279,14 @@ def run_crawl(start_url: str | None = None, keywords: str = "", depth: int | Non
                 desc += "\n\nMatches:\n" + "\n".join(
                     f"- {m['kind']} '{m['value']}': …{m['context'][:160]}…" for m in matches[:8])
             basis = ",".join(sorted({f"{m['kind']}:{m['value'].lower()}" for m in matches})) or (p.ai_category or "")
-            _, created = raise_alert(
+            alert, created = raise_alert(
                 s, source="crawler", key=dedup_key("crawler", url, basis), title=title_txt,
                 description=desc, severity=severity, url=url, matches=matches,
                 iocs=[i["value"] for i in iocs], page_id=p.id, target_id=tid, run_id=run_id,
-                summary=p.ai_summary or "", router=router)
+                summary=p.ai_summary or "", router=router,
+                context={"text": title + "\n" + text, "ioc_types": [i["ioc_type"] for i in iocs],
+                         "ai_category": p.ai_category if p.ai_analyzed else ""})
+            _profile_forum_authors(s, page, p.id, alert, [m["value"] for m in matches] or watch_labels)
             if created:
                 st["alerts"] += 1
                 run_alerts.append({"severity": severity, "title": title_txt[:500], "url": url})

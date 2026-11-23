@@ -177,7 +177,9 @@ def alert_dict(a: Alert) -> dict:
             "occurrences": a.occurrences, "notified": a.notified, "notify_channels": a.notify_channels,
             "triage": a.triage or {}, "analyst_note": a.analyst_note, "page_id": a.page_id,
             "target_id": a.target_id, "run_id": a.run_id, "created_at": _iso(a.created_at),
-            "last_seen": _iso(a.last_seen)}
+            "last_seen": _iso(a.last_seen), "threat_class": a.threat_class or "",
+            "risk_score": a.risk_score or 0, "risk_factors": a.risk_factors or [],
+            "incident_ref": a.incident_ref or ""}
 
 
 def page_dict(p: Page, content: bool = False) -> dict:
@@ -188,6 +190,7 @@ def page_dict(p: Page, content: bool = False) -> dict:
          "content_hash": p.content_hash, "content_purged": p.content_purged}
     if content:
         d["content"] = p.content
+        d["change_summary"] = p.change_summary or {}
     return d
 
 
@@ -233,6 +236,7 @@ def status(force_tor: bool = False):
             "scheduler": {"running": scheduler_running(), "jobs": jobs_overview()},
             "active_runs": get_manager().active_ids(), "sources": source_status(),
             "enrichment": lookup_services(), "misp": bool(settings.MISP_URL and settings.MISP_API_KEY),
+            "incidentforge": bool(settings.INCIDENTFORGE_URL),
             "config": {"scope": settings.CRAWL_SCOPE, "tor_required": settings.TOR_REQUIRED,
                        "retention_days": settings.RETENTION_DAYS, "store_content": settings.STORE_PAGE_CONTENT,
                        "alert_min_severity": settings.ALERT_MIN_SEVERITY,

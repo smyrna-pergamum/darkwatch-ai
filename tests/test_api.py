@@ -36,7 +36,7 @@ def test_auth(client, monkeypatch):
     assert client.get("/api/stats", headers={"X-API-Key": "s3cret"}).status_code == 200
     assert client.get("/health").status_code == 200
     r = client.get("/")
-    assert "DarkWeb Monitor" in r.text and "Content-Security-Policy" in r.headers
+    assert "DarkWatch AI" in r.text and "Content-Security-Policy" in r.headers
 
 
 def test_no_wildcard_cors(client):

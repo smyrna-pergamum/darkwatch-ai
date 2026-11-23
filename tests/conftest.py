@@ -8,7 +8,7 @@ os.environ.update({
     "ALERT_WEBHOOK_URL": "", "OPENAI_API_KEY": "", "ANTHROPIC_API_KEY": "", "API_KEY": "",
     "CRAWL_DELAY_SEC": "0", "RANSOMWARE_LIVE_ENABLED": "false", "FEEDS_ENABLED": "false",
     "HIBP_API_KEY": "", "INTELX_API_KEY": "", "AHMIA_ENABLED": "false", "AI_TASK_PLANNER": "true",
-    "AUTO_APPROVE_TASKS": "recrawl", "MISP_URL": "", "TELEGRAM_BOT_TOKEN": "", "SMTP_HOST": "",
+    "AUTO_APPROVE_TASKS": "recrawl", "MISP_URL": "", "TELEGRAM_BOT_TOKEN": "", "SMTP_HOST": "", "INCIDENTFORGE_URL": "",
 })
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -24,7 +24,10 @@ ONION_B = "b" * 56 + ".onion"
 
 
 @pytest.fixture(autouse=True)
-def fresh_db(tmp_path):
+def fresh_db(tmp_path, monkeypatch):
+    from config.settings import settings
+    monkeypatch.setattr(settings, "EVIDENCE_DIR", str(tmp_path / "evidence"))
+    monkeypatch.setattr(settings, "INCIDENTFORGE_URL", "")
     db.configure(f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
     db.init_db()
     router_mod.set_router(router_mod.AIRouter(local=Unavailable("ollama"), cloud=Unavailable("cloud")))

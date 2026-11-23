@@ -1,2 +1,2 @@
-"""DarkWeb Monitor - defensive Tor / leak monitoring with an AI agent layer."""
-__version__ = "0.1.0"
+"""DarkWatch AI (darkweb-monitor) - AI-powered darknet monitoring & threat intelligence."""
+__version__ = "0.2.0"

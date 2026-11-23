@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>DarkWeb Monitor</title>
+<title>DarkWatch AI</title>
 <style>
 :root{
   --bg:#0b0d12;--panel:#12151c;--panel2:#171b24;--line:#232836;--line2:#2d3344;
@@ -172,7 +172,7 @@ svg text{fill:var(--dim);font-size:10px}
 <body>
 <div class="app">
   <aside>
-    <div class="brand"><div class="logo">◉</div><div>DarkWeb Monitor<small id="ver">v2</small></div></div>
+    <div class="brand"><div class="logo">◉</div><div>DarkWatch AI<small id="ver">v2</small></div></div>
     <nav id="nav">
       <div class="grp">Monitor</div>
       <a data-view="overview" class="active"><span class="ic">▦</span>Overview</a>
@@ -180,6 +180,11 @@ svg text{fill:var(--dim);font-size:10px}
       <a data-view="analyst"><span class="ic">◈</span>AI Analyst<span class="badge" id="b-approvals" style="display:none">0</span></a>
       <a data-view="tasks"><span class="ic">✦</span>AI Tasks<span class="badge" id="b-tasks">0</span></a>
       <a data-view="learning"><span class="ic">❋</span>Learning</a>
+      <div class="grp">Intelligence</div>
+      <a data-view="orgs"><span class="ic">▣</span>Organizations</a>
+      <a data-view="actors"><span class="ic">☠</span>Threat actors</a>
+      <a data-view="graph"><span class="ic">⌬</span>Entity graph</a>
+      <a data-view="evidence"><span class="ic">⛨</span>Evidence</a>
       <div class="grp">Collection</div>
       <a data-view="targets"><span class="ic">◎</span>Targets</a>
       <a data-view="runs"><span class="ic">↻</span>Crawl runs<span class="badge" id="b-runs" style="display:none">0</span></a>
@@ -222,7 +227,14 @@ svg text{fill:var(--dim);font-size:10px}
           <div class="card"><h3>Latest AI assessment <a class="right small" data-goto="runs">Runs →</a></h3><div id="ov-run"></div>
             <div class="section-t">Active runs</div><div id="ov-active"></div></div>
         </div>
+        <div id="ov-intel" style="margin-top:16px"></div>
       </section>
+
+      <!-- INTELLIGENCE (rendered by /ui/intel.js) -->
+      <section class="view" id="view-orgs"><div id="orgs-root"></div></section>
+      <section class="view" id="view-actors"><div id="actors-root"></div></section>
+      <section class="view" id="view-graph"><div id="graph-root"></div></section>
+      <section class="view" id="view-evidence"><div id="evidence-root"></div></section>
 
       <!-- ALERTS -->
       <section class="view" id="view-alerts">
@@ -381,6 +393,7 @@ svg text{fill:var(--dim);font-size:10px}
 <div class="modal-bg" id="modal-bg"><div class="modal"><div class="mh"><span id="md-title"></span><span style="flex:1"></span><button class="ghost sm" id="md-close">✕</button></div><div class="mb" id="md-body"></div><div class="mf" id="md-foot"></div></div></div>
 <div class="toasts" id="toasts"></div>
 
+<script src="/ui/intel.js"></script>
 <script>
 "use strict";
 const API = '/api';
@@ -423,7 +436,8 @@ const TITLES = { overview: ['Overview', 'Threat picture across all sources'], al
   aimodels: ['AI & Models', 'Providers (OpenAI-compatible, Ollama, LM Studio, llama.cpp) and local GGUF models'], targets: ['Targets', 'Onion services under monitoring, with schedules and crawl modes'],
   runs: ['Crawl runs', 'Live and past crawls, AI assessments and agent decisions'], sources: ['Intel sources', 'Breach, leak and ransomware-site intelligence'],
   watchlist: ['Watchlist', 'Assets and terms that trigger alerts'], pages: ['Pages', 'Collected content with change detection'],
-  indicators: ['Indicators', 'Deduplicated IOCs with first/last seen and feed correlation'], system: ['System', 'Tor, AI, scheduler, configuration and audit'] };
+  indicators: ['Indicators', 'Deduplicated IOCs with first/last seen and feed correlation'], system: ['System', 'Tor, AI, scheduler, configuration and audit'],
+  ...((window.INTEL && window.INTEL.titles) || {}) };
 function go(v) {
   state.view = v; closeDrawer(); closeModal();
   $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === v));
@@ -435,7 +449,8 @@ function go(v) {
 function load(v) {
   const f = { overview: loadOverview, alerts: loadAlerts, tasks: loadTasks, targets: loadTargets, runs: loadRuns,
     sources: loadSources, watchlist: loadWatch, pages: loadPages, indicators: loadInd, system: loadSystem,
-    analyst: loadAnalyst, learning: loadLearning, aimodels: () => loadAIModels(false).then(() => loadAIModels(true)) }[v];
+    analyst: loadAnalyst, learning: loadLearning, aimodels: () => loadAIModels(false).then(() => loadAIModels(true)),
+    ...((window.INTEL && window.INTEL.views) || {}) }[v];
   if (f) f().catch(fail);
 }
 $$('#nav a').forEach(a => a.addEventListener('click', () => go(a.dataset.view)));
@@ -511,6 +526,7 @@ async function loadOverview() {
   const done = runs.items.find(r => r.status === 'done' && r.ai_summary);
   $('#ov-run').innerHTML = done ? summaryHtml(done.ai_summary, done) : empty('No assessment yet', 'Run a crawl to get an AI risk summary.');
   const act = runs.items.filter(r => r.status === 'running' || r.status === 'queued');
+  if (window.INTEL) INTEL.overview().catch(() => {});
   $('#ov-active').innerHTML = act.length ? act.map(r => `<div class="item" style="padding:6px 0"><div class="small">${modeTag(r.mode)} <span class="mono">${esc(defang(r.start_url))}</span> · ${esc(r.status)} · ${r.pages} pages</div><div class="progress"><span></span></div></div>`).join('') : '<div class="dim small">No crawls running</div>';
 }
 function alertItem(a) {
@@ -534,8 +550,8 @@ async function loadAlerts() {
   const res = await api('/alerts?' + p); a.sel.clear(); updBulk();
   const t = $('#t-alerts');
   if (!res.items.length) { t.innerHTML = `<tr><td>${empty('No alerts match', 'Adjust the filters or add watchlist terms.')}</td></tr>`; $('#al-pager').innerHTML = ''; return; }
-  t.innerHTML = `<tr><th style="width:28px"><input type="checkbox" id="al-all"></th><th>Severity</th><th>Alert</th><th>Source</th><th>Status</th><th>Seen</th><th>Last</th></tr>` +
-    res.items.map(x => `<tr class="row" data-id="${x.id}"><td><input type="checkbox" class="al-cb" data-id="${x.id}"></td><td>${sev(x.severity)}</td>
+  t.innerHTML = `<tr><th style="width:28px"><input type="checkbox" id="al-all"></th><th>Severity</th><th>Risk</th><th>Alert</th><th>Source</th><th>Status</th><th>Seen</th><th>Last</th></tr>` +
+    res.items.map(x => `<tr class="row" data-id="${x.id}"><td><input type="checkbox" class="al-cb" data-id="${x.id}"></td><td>${sev(x.severity)}</td><td>${window.INTEL ? INTEL.riskCell(x) : ''}</td>
       <td><div class="trunc" style="max-width:520px">${esc(x.title)}</div>${x.triage && x.triage.reason ? `<div class="small dim trunc" style="max-width:520px">AI: ${x.triage.true_positive === false ? 'likely false positive — ' : ''}${esc(x.triage.reason)}</div>` : ''}</td>
       <td><span class="tag">${esc(x.source)}</span></td><td>${statusTag(x.status)}</td><td class="small">${x.occurrences}×</td><td class="small dim">${ago(x.last_seen)}</td></tr>`).join('');
   pager('#al-pager', res.total, a, loadAlerts);
@@ -571,6 +587,7 @@ async function openAlert(id) {
      ['Re-triage (AI)', async () => { try { await post(`/alerts/${id}/triage`); toast('Triage updated', 'ok'); openAlert(id); } catch (e) { fail(e); } }],
      ...(state.status && state.status.misp ? [['Send to MISP', async () => { try { const r = await post(`/alerts/${id}/misp`); toast('MISP event ' + r.event_id, 'ok'); } catch (e) { fail(e); } }]] : [])]);
   bindFeedback($('#dr-body'));
+  if (window.INTEL) INTEL.alertPanel(id, a).catch(fail);
 }
 async function setAlert(id, body) { try { await patch('/alerts/' + id, body); toast('Alert updated', 'ok'); closeDrawer(); loadAlerts(); loadBadges(); } catch (e) { fail(e); } }
 

@@ -17,13 +17,25 @@ def dedup_key(*parts: str) -> str:
     return hashlib.sha256("|".join(p or "" for p in parts).encode()).hexdigest()[:32]
 
 
+def _enrich(s, alert: Alert, created: bool, context: dict | None) -> None:
+    try:
+        from ..intel.hooks import on_alert
+        on_alert(s, alert, created, context)
+    except Exception:  # noqa: BLE001 - enrichment never blocks alerting
+        logger.exception("alert enrichment failed for alert %s", alert.id)
+
+
 def raise_alert(s, *, source: str, key: str, title: str, description: str, severity: str,
                 url: str = "", matches: list | None = None, iocs: list | None = None,
                 page_id: int | None = None, target_id: int | None = None,
-                run_id: int | None = None, summary: str = "", router=None) -> tuple[Alert, bool]:
+                run_id: int | None = None, summary: str = "", router=None,
+                context: dict | None = None) -> tuple[Alert, bool]:
     """Return (alert, created). Re-sightings increase ``occurrences`` and only
     notify again when severity escalates. ``false_positive`` alerts stay quiet;
-    ``resolved`` alerts re-open as a new alert (recurrence)."""
+    ``resolved`` alerts re-open as a new alert (recurrence).
+
+    ``context`` (page text, AI category, IOC types) feeds the DarkWatch
+    enrichment: threat class, tenant attribution, risk score, evidence."""
     matches = matches or []
     existing = s.query(Alert).filter_by(dedup_key=key).order_by(Alert.id.desc()).first()
     if existing and existing.status in ("new", "acknowledged", "false_positive"):
@@ -37,6 +49,7 @@ def raise_alert(s, *, source: str, key: str, title: str, description: str, sever
             sent = notifier.notify(f"(escalated) {existing.title}", existing.description,
                                    severity=severity, url=url)
             existing.notified = existing.notified or bool(sent)
+        _enrich(s, existing, False, context)
         return existing, False
 
     alert = Alert(source=source, page_id=page_id, target_id=target_id, run_id=run_id, url=url,
@@ -65,6 +78,7 @@ def raise_alert(s, *, source: str, key: str, title: str, description: str, sever
         sent = notifier.notify(title, description[:1500], severity=severity,
                                iocs=list(iocs or []), url=url)
         alert.notified, alert.notify_channels = bool(sent), ",".join(sent)
+    _enrich(s, alert, True, {**(context or {}), "suppressed": suppress})
     if settings.MISP_URL and settings.MISP_AUTO_PUSH_SEVERITY and \
             SEVERITY_RANK.get(severity, 0) >= SEVERITY_RANK.get(settings.MISP_AUTO_PUSH_SEVERITY, 9):
         try:

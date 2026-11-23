@@ -104,7 +104,7 @@ class Notifier:
 
     def _send_email(self, title, desc, sev, iocs, url, text):
         msg = EmailMessage()
-        msg["Subject"] = f"[DarkWeb Monitor][{sev.upper()}] {title}"[:200]
+        msg["Subject"] = f"[DarkWatch AI][{sev.upper()}] {title}"[:200]
         msg["From"] = settings.SMTP_FROM or settings.SMTP_USER
         msg["To"] = ", ".join(settings.list_of("SMTP_TO"))
         msg.set_content(text)
