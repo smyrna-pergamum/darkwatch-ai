@@ -5,6 +5,32 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/) (0.x = developer preview: breaking
 changes possible between minor versions).
 
+## [0.3.0] - 2026-11-24 — Built-in Tor, built-in AI, assistant
+
+### Added
+- **Built-in Tor** (*System → Tor*): *Connect* downloads the official Tor Expert Bundle (SHA-256 verified) and
+  starts it; bridge mode *auto* tries direct, then snowflake, obfs4 and meek (bridge lines from the bundle's
+  `pt_config.json`), *custom* accepts pasted bridges. *Reconnect*, *New identity* (cookie-authenticated
+  NEWNYM), *Stop*, bootstrap progress and attempt log.
+- **Built-in AI engine** (*AI & Models → Set up built-in AI*): downloads llama.cpp for the OS and a GGUF model,
+  switches to the managed llama.cpp backend and starts it; automatic on first start of the packaged release.
+- **Assistant**: a floating help panel; a new `assistant` agent answers how-to questions from a built-in guide
+  (Turkish and English) plus the live setup state, and works without a model.
+- **Smart questions and recommendations** on the Overview, from the data and optionally from the model.
+- **Application icon** (exe, dashboard logo, favicon) — `packaging/make_icon.py`.
+- `data/runtime.json`: settings chosen in the dashboard survive restarts.
+
+### Changed
+- **Order of operations**: start-up runs database → Tor → AI → scheduler; a setup checklist shows the steps in
+  dependency order. Scheduled crawls wait for Tor (deferred, then resumed automatically) instead of failing;
+  starting a crawl without Tor returns a clear 409 with what to do.
+
+### Fixed
+- `ollama HTTP 404: model '…' not found`: a configured but unpulled Ollama model no longer counts as available;
+  the best installed model is used instead.
+- Small models that print tool calls as bare JSON (one or several) are understood by the agent harness.
+- llama-server starts without a console window and finds its DLLs next to the binary.
+
 ## [0.2.0] - 2026-11-23 — DarkWatch AI
 
 The project is now presented as **DarkWatch AI** (package, CLI and repository names are unchanged).

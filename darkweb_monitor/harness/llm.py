@@ -123,6 +123,26 @@ def _calls_in_text(content: str) -> list[dict]:
                         "args": _parse_args(obj.get("arguments") or obj.get("args"))})
         except ValueError:
             continue
+    if not out:  # bare JSON objects ({"name": ..., "arguments": ...}), one or more, maybe in ``` fences
+        body = content.strip()
+        if body.startswith("```"):
+            body = body.strip("`").removeprefix("json").strip()
+        if not body.startswith("{"):
+            return out
+        dec, i = json.JSONDecoder(), 0
+        while i < len(body):
+            j = body.find("{", i)
+            if j < 0:
+                break
+            try:
+                obj, end = dec.raw_decode(body, j)
+            except ValueError:
+                break
+            if isinstance(obj, dict) and isinstance(obj.get("name"), str) and (
+                    "arguments" in obj or "parameters" in obj or "args" in obj):
+                out.append({"id": _cid(), "name": obj["name"],
+                            "args": _parse_args(obj.get("arguments") or obj.get("parameters") or obj.get("args"))})
+            i = end
     return out
 
 
@@ -136,10 +156,12 @@ class OllamaChat(Adapter):
         self.base = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
 
     def available(self) -> bool:
-        try:
-            return httpx.get(f"{self.base}/api/tags", timeout=4).status_code == 200
-        except Exception:  # noqa: BLE001
-            return False
+        """Reachable AND the model is pulled (else fall back to an installed model)."""
+        from ..ai.local import OllamaClient
+        c = OllamaClient(base_url=self.base, model=self.model)
+        ok = c.available()
+        self.model = c.model
+        return ok
 
     def context_window(self) -> int:
         from ..ai.context import detect_context_window

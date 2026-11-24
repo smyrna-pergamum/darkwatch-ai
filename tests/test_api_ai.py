@@ -137,7 +137,7 @@ def test_analyst_api(client):
     service.set_adapter(RulesAdapter())
     try:
         st = client.get("/api/analyst/status").json()
-        assert st["rule_based"] and {a["id"] for a in st["agents"]} == {"analyst", "page-reader"}
+        assert st["rule_based"] and {a["id"] for a in st["agents"]} == {"analyst", "assistant", "page-reader"}
         sid = client.post("/api/analyst/sessions", json={"alert_id": aid}).json()["id"]
         service._pool.submit(lambda: None).result(timeout=10)
         d = client.get(f"/api/analyst/sessions/{sid}").json()

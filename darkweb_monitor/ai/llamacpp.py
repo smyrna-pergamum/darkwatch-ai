@@ -55,7 +55,10 @@ class ManagedServer:
 
     def binary(self) -> str | None:
         b = settings.LLAMACPP_SERVER_BIN
-        return b if os.path.isfile(b) else shutil.which(b)
+        if os.path.isfile(b):
+            return b
+        from .engine import find_engine  # built-in engine in data/engine
+        return find_engine() or shutil.which(b)
 
     def running(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
@@ -66,7 +69,7 @@ class ManagedServer:
             exe = self.binary()
             if not exe:
                 raise AIError(f"llama-server binary not found ({settings.LLAMACPP_SERVER_BIN}); "
-                              "install llama.cpp or set LLAMACPP_SERVER_BIN")
+                              "use 'Set up built-in AI' (AI & Models) or set LLAMACPP_SERVER_BIN")
             cmd = [exe, "-m", model_path, "--host", "127.0.0.1", "--port", str(settings.LLAMACPP_PORT),
                    "-c", str(settings.LLAMACPP_CTX), "--jinja", "-ngl", str(settings.LLAMACPP_GPU_LAYERS)]
             if settings.LLAMACPP_THREADS:
@@ -77,7 +80,9 @@ class ManagedServer:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
             log = open(self.log_path, "ab")  # noqa: SIM115 - owned by the child process
             logger.info("starting llama-server: %s", " ".join(cmd))
-            self.proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
+            self.proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
+                                         cwd=str(Path(exe).resolve().parent),  # finds its DLLs / .so files
+                                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             self.model_path = model_path
 
     def wait_ready(self, timeout: float = 180) -> bool:

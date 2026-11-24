@@ -16,6 +16,7 @@ from ..ai.router import get_router
 from ..alerts.notifier import Notifier
 from ..crawler.parsers import is_onion, normalize_url
 from ..crawler.tor_client import new_identity, tor_status
+from ..readiness import NotReady, require_tor
 from ..storage.db import audit, session_scope
 from ..storage.models import (
     SEVERITIES, AgentApproval, Alert, AuditLog, CrawlRun, Indicator, Page, Sighting, SourceRun, Target, Task,
@@ -377,7 +378,10 @@ def del_target(tid: int, purge: bool = False):
 def crawl_target(tid: int):
     from ..runner import get_manager
     try:
+        require_tor()
         rid = get_manager().submit(target_id=tid, trigger="api")
+    except NotReady as e:
+        raise HTTPException(409, str(e)) from e
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
     return {"run_id": rid}
@@ -391,8 +395,11 @@ def crawl_now(c: CrawlIn):
     if url and not url.startswith(("http://", "https://")):
         url = "http://" + url
     try:
+        require_tor()
         rid = get_manager().submit(target_id=c.target_id, url=url, keywords=c.keywords, depth=c.depth,
                                    mode=c.mode, goal=c.goal, max_pages=c.max_pages, trigger="api")
+    except NotReady as e:
+        raise HTTPException(409, str(e)) from e
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
     return {"run_id": rid, "status": "queued"}

@@ -82,7 +82,10 @@ def _opening(alert_id: int | None, question: str | None) -> tuple[str, list[int]
     return (text + ("\n\n" + block if block else "")), [lesson["id"] for _, lesson in lessons]
 
 
-def start(alert_id: int | None = None, question: str | None = None, trigger: str = "manual") -> int:
+def start(alert_id: int | None = None, question: str | None = None, trigger: str = "manual",
+          agent: str = "analyst") -> int:
+    if agent == "assistant":
+        return _start_assistant(question or "", trigger)
     if not settings.ANALYST_ENABLED:
         raise ValueError("analyst agent is disabled (ANALYST_ENABLED=false)")
     if alert_id:
@@ -105,6 +108,34 @@ def start(alert_id: int | None = None, question: str | None = None, trigger: str
     _submit(log.session_id, text, trigger)
     audit("analyst.start", f"session {log.session_id} alert={alert_id} trigger={trigger}", actor=trigger)
     return log.session_id
+
+
+def _start_assistant(question: str, trigger: str) -> int:
+    question = question.strip()
+    if not question:
+        raise ValueError("question required")
+    log = SessionLog.create("assistant", title=question.splitlines()[0][:200], subject_type="help", trigger=trigger)
+    _submit(log.session_id, assistant_opening(question), trigger)
+    return log.session_id
+
+
+def assistant_opening(question: str) -> str:
+    """Question + the guide sections and setup state it needs, so even a small
+    model can answer directly (tools stay available for follow-ups)."""
+    from ..assistant import kb
+    from ..assistant.tools import app_status
+    parts = [question, "", "[Relevant guide sections]"]
+    parts += [f"- {t['title']}: {t['body']}" for t in kb.search(question, k=2)]
+    try:
+        st = app_status({}, None)
+        steps = "; ".join(f"{'done' if x['done'] else ('NEXT' if x['next'] else 'todo')}: {x['title']} ({x['detail']})"
+                          for x in st["setup_checklist"])
+        parts += ["", "[Current setup state, in order]", steps]
+    except Exception:  # noqa: BLE001
+        pass
+    parts += ["", "Answer the question now in the user's language using this information. "
+                  "Call a tool only if something is missing."]
+    return "\n".join(parts)
 
 
 def send(session_id: int, text: str) -> None:
@@ -137,7 +168,9 @@ def _run(session_id: int, text: str, trigger: str, flag: threading.Event) -> Non
             log.update(status="cancelled")
             return
         adapter = current_adapter()
-        loop, _ = build(adapter, approver=_approver)
+        agent_id = (log.row() or {}).get("agent") or "analyst"
+        loop, _ = build(adapter, agent_id=agent_id if agent_id in ("analyst", "assistant") else "analyst",
+                        approver=_approver)
         state = {"provider": f"{adapter.name}/{adapter.model}" if adapter.model else adapter.name,
                  "page_chunk_chars": max(1200, int(adapter.context_window() * 3.2 * 0.25))}
         outcome = loop.run_turn(log, text, trigger, flag.is_set, state)

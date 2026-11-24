@@ -55,7 +55,8 @@ def tor_status(force: bool = False, max_age: float = 300) -> dict:
         if not force and _tor_cache["result"] and time.time() - _tor_cache["ts"] < max_age:
             return _tor_cache["result"]
         res = {"enabled": settings.TOR_ENABLED, "proxy": f"{settings.TOR_PROXY_HOST}:{settings.TOR_PROXY_PORT}",
-               "reachable": False, "is_tor": False, "exit_ip": None, "error": None}
+               "reachable": False, "is_tor": False, "exit_ip": None, "error": None,
+               "mode": "managed" if settings.TOR_MODE == "managed" else "external"}
         if not settings.TOR_ENABLED:
             res["error"] = "TOR_ENABLED=false"
         else:
@@ -90,6 +91,12 @@ def ensure_tor() -> None:
 
 def new_identity() -> tuple[bool, str]:
     """Ask the Tor control port for a new circuit (SIGNAL NEWNYM)."""
+    from .. import tor_manager
+    if tor_manager.state["status"] == "connected":  # built-in Tor: cookie auth
+        ok, msg = tor_manager.new_identity()
+        if ok:
+            _tor_cache["ts"] = 0
+        return ok, msg
     try:
         with socket.create_connection((settings.TOR_PROXY_HOST, settings.TOR_CONTROL_PORT), timeout=10) as s:
             pw = settings.TOR_CONTROL_PASSWORD.replace("\\", "\\\\").replace('"', '\\"')
