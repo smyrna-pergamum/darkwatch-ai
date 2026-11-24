@@ -7,7 +7,7 @@ on:
   workflow_dispatch:     # rebuild assets for an existing tag
     inputs:
       tag:
-        description: "Existing tag to build, e.g. v0.2.0"
+        description: "Existing tag to build, e.g. v0.3.0"
         required: true
 
 permissions:

@@ -19,11 +19,18 @@ _scheduler: BackgroundScheduler | None = None
 
 
 def _crawl_target(target_id: int) -> None:
+    from ..readiness import defer_or_run
     from ..runner import get_manager
     try:
-        get_manager().submit(target_id=target_id, trigger="schedule")
+        defer_or_run(target_id, get_manager().submit)  # waits for Tor instead of failing
     except Exception as e:  # noqa: BLE001
         logger.warning("scheduled crawl for target %s not queued: %s", target_id, e)
+
+
+def _resume_deferred() -> None:
+    from ..readiness import resume_deferred
+    from ..runner import get_manager
+    resume_deferred(get_manager().submit)
 
 
 def _due_tasks() -> None:
@@ -128,6 +135,8 @@ def start_scheduler() -> BackgroundScheduler | None:
     if _scheduler is not None or not settings.SCHEDULER_ENABLED:
         return _scheduler
     _scheduler = BackgroundScheduler(timezone="UTC")
+    _scheduler.add_job(_resume_deferred, IntervalTrigger(minutes=1), id="resume-deferred",
+                       name="start crawls deferred until Tor was ready", replace_existing=True)
     _scheduler.add_job(_due_tasks, IntervalTrigger(minutes=1), id="due-tasks", name="follow-up tasks",
                        max_instances=1, coalesce=True)
     _scheduler.add_job(_analyst, IntervalTrigger(minutes=2), id="analyst-auto", name="AI analyst auto-investigation",

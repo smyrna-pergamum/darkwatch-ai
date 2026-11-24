@@ -12,12 +12,12 @@ from fastapi.responses import HTMLResponse, Response
 
 from config.settings import BASE_DIR, settings
 from .. import __version__
-from ..storage.db import init_db
 from .routes import router as api_router
 from .routes_ai import router as ai_router
 from .routes_intel import router as intel_router
 from .routes_learning import router as learning_router
 from .routes_orgs import router as orgs_router
+from .routes_setup import router as setup_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -35,22 +35,10 @@ def _dashboard_path() -> Path:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
-    from ..runner import get_manager
-    n = get_manager().recover()
-    if n:
-        logger.warning("%d interrupted run(s) marked as failed", n)
-    from ..analyst.service import recover as recover_analyst
-    recover_analyst()
-    from ..ai.models import autostart
-    autostart()
-    from ..scheduler.jobs import start_scheduler, stop_scheduler
-    start_scheduler()
+    from ..readiness import shutdown, startup
+    startup()  # database -> Tor -> AI -> scheduler
     yield
-    stop_scheduler()
-    get_manager().shutdown()
-    from ..ai.llamacpp import managed
-    managed.stop()
+    shutdown()
 
 
 app = FastAPI(title="DarkWatch AI", version=__version__, lifespan=lifespan,
@@ -63,6 +51,7 @@ app.include_router(ai_router, prefix="/api")
 app.include_router(learning_router, prefix="/api")
 app.include_router(intel_router, prefix="/api")
 app.include_router(orgs_router, prefix="/api")
+app.include_router(setup_router, prefix="/api")
 
 
 @app.middleware("http")
@@ -88,7 +77,8 @@ def index():
         return "<h1>DarkWatch AI</h1><p>Dashboard missing.</p>"
 
 
-_UI_FILES = {"intel.js": "application/javascript; charset=utf-8"}
+_UI_FILES = {"intel.js": "application/javascript; charset=utf-8", "assist.js": "application/javascript; charset=utf-8",
+             "icon.svg": "image/svg+xml", "favicon.ico": "image/x-icon", "icon.png": "image/png"}
 
 
 @app.get("/ui/{name}", include_in_schema=False)
@@ -100,6 +90,11 @@ def ui_asset(name: str):
         return Response(p.read_bytes(), media_type=_UI_FILES[name], headers={"Cache-Control": "no-cache"})
     except FileNotFoundError:
         return Response(status_code=404)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return ui_asset("favicon.ico")
 
 
 @app.get("/health")

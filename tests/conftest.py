@@ -9,6 +9,7 @@ os.environ.update({
     "CRAWL_DELAY_SEC": "0", "RANSOMWARE_LIVE_ENABLED": "false", "FEEDS_ENABLED": "false",
     "HIBP_API_KEY": "", "INTELX_API_KEY": "", "AHMIA_ENABLED": "false", "AI_TASK_PLANNER": "true",
     "AUTO_APPROVE_TASKS": "recrawl", "MISP_URL": "", "TELEGRAM_BOT_TOKEN": "", "SMTP_HOST": "", "INCIDENTFORGE_URL": "",
+    "DWM_NO_RUNTIME": "1", "AI_AUTO_SETUP": "false", "TOR_MODE": "external",
 })
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -28,6 +29,8 @@ def fresh_db(tmp_path, monkeypatch):
     from config.settings import settings
     monkeypatch.setattr(settings, "EVIDENCE_DIR", str(tmp_path / "evidence"))
     monkeypatch.setattr(settings, "INCIDENTFORGE_URL", "")
+    from config import runtime
+    monkeypatch.setattr(runtime, "RUNTIME_FILE", tmp_path / "runtime.json")
     db.configure(f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
     db.init_db()
     router_mod.set_router(router_mod.AIRouter(local=Unavailable("ollama"), cloud=Unavailable("cloud")))

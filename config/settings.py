@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     TOR_CONTROL_PASSWORD: str = ""
     TOR_NEWNYM_EVERY_RUN: bool = False  # request a fresh circuit before each run
     TOR_CHECK_URL: str = "https://check.torproject.org/api/ip"
+    # external: use the Tor you run (TOR_PROXY_PORT); managed: the app downloads and starts its own Tor
+    TOR_MODE: str = "external"
+    TOR_BIN: str = ""                       # tor executable for managed mode ("" = download / data/tor)
+    TOR_MANAGED_SOCKS_PORT: int = 9060
+    TOR_MANAGED_CONTROL_PORT: int = 9061
+    # direct | auto (direct, then bridges if blocked) | snowflake | obfs4 | meek | webtunnel | custom
+    TOR_BRIDGE_MODE: str = "auto"
+    TOR_BRIDGES: str = ""                   # custom bridge lines, separated by newlines or "|"
+    TOR_DIST_URL: str = "https://dist.torproject.org/torbrowser/"
     REQUEST_TIMEOUT: int = 45
     MAX_RETRIES: int = 2
     USER_AGENT: str = "Mozilla/5.0 (Windows NT 10.0; rv:128.0) Gecko/20100101 Firefox/128.0"
@@ -106,6 +115,11 @@ class Settings(BaseSettings):
     MODEL_DOWNLOAD_HOSTS: str = "huggingface.co,hf.co,cdn-lfs.huggingface.co,cdn-lfs.hf.co,cdn-lfs-us-1.hf.co,cas-bridge.xethub.hf.co,xethub.hf.co,modelscope.cn,github.com,objects.githubusercontent.com"
     HF_TOKEN: str = ""  # Hugging Face token for gated / private GGUF repos
     HF_ENDPOINT: str = "https://huggingface.co"
+    # Built-in AI engine: download llama.cpp + a GGUF model and run it locally.
+    # auto = only in the packaged release when no local AI is available; true / false
+    AI_AUTO_SETUP: str = "auto"
+    AI_DEFAULT_MODEL: str = "balanced"         # small | balanced | strong (see ai/engine.py)
+    LLAMACPP_RELEASES_API: str = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=15"
 
     # --- Analyst agent (harness) ---------------------------------------------
     ANALYST_ENABLED: bool = True
@@ -223,6 +237,10 @@ if _db.startswith("sqlite:///") and not _db.startswith("sqlite:////"):
     _rel = _db[len("sqlite:///"):]
     if not os.path.isabs(_rel) and not (len(_rel) > 1 and _rel[1] == ":"):
         settings.DATABASE_URL = f"sqlite:///{(BASE_DIR / _rel).as_posix()}"
+
+if not os.environ.get("DWM_NO_RUNTIME"):  # tests start from .env only
+    from .runtime import load as _load_runtime
+    _load_runtime()
 
 
 def ensure_dirs() -> None:

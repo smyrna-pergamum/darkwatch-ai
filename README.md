@@ -6,7 +6,7 @@
 
 <sub>repository: <code>darkwatch-ai</code> · Python package: <code>darkweb_monitor</code> · formerly "DarkWeb Monitor"</sub>
 
-[![Release](https://img.shields.io/badge/release-v0.2.0-7c5cff)](https://github.com/smyrna-pergamum/darkwatch-ai/releases)
+[![Release](https://img.shields.io/badge/release-v0.3.0-7c5cff)](https://github.com/smyrna-pergamum/darkwatch-ai/releases)
 [![CI](https://github.com/smyrna-pergamum/darkwatch-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/smyrna-pergamum/darkwatch-ai/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -57,15 +57,17 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 
 ### Option 1 — Release bundle (no Python needed)
 
-1. Download `darkweb-monitor-0.2.0-<windows|linux|macos>-<arch>.zip` from
+1. Download `darkweb-monitor-0.3.0-<windows|linux|macos>-<arch>.zip` from
    [Releases](https://github.com/smyrna-pergamum/darkwatch-ai/releases) and extract it.
-2. Start Tor (the `tor` service on port 9050, or Tor Browser on 9150 → set `TOR_PROXY_PORT=9150` in `.env`).
-3. Double-click `DarkWebMonitor.exe` (Windows) or run `./DarkWebMonitor` (Linux/macOS) with no arguments.
+2. Double-click `DarkWebMonitor.exe` (Windows) or run `./DarkWebMonitor` (Linux/macOS) with no arguments.
    It creates the database, starts the dashboard on http://127.0.0.1:8000 and opens your browser.
    Keep the console window open while you use it; close it (or press Ctrl+C) to stop.
+3. Follow the **Setup — in this order** card on the Overview page: *Connect Tor* (built-in Tor, bridges are
+   used automatically if Tor is blocked — or keep your own Tor on 9050 / Tor Browser on 9150), then the
+   built-in AI engine (set up automatically on first start), then your organization, targets and first crawl.
    The same executable is also the CLI, e.g. `DarkWebMonitor status` or `DarkWebMonitor serve --port 8080`.
 
-   On macOS, if Gatekeeper blocks the unsigned app: `xattr -dr com.apple.quarantine darkweb-monitor-0.2.0`.
+   On macOS, if Gatekeeper blocks the unsigned app: `xattr -dr com.apple.quarantine darkweb-monitor-0.3.0`.
    On Windows, SmartScreen may warn about the unsigned exe: *More info → Run anyway*.
 
 Configuration lives in the `.env` file next to the executable; data is stored in `data/` beside it.
@@ -101,6 +103,11 @@ GGUF_FILE=qwen2.5-3b-instruct-q4_k_m.gguf \
 
 ### First steps in the dashboard
 
+The Overview page shows a **setup checklist in the order things depend on each other** and highlights the
+next step. Start-up runs in the same order — database → Tor → AI → scheduler — and scheduled crawls that come
+due while Tor is not connected are **deferred, not failed**, and start automatically once Tor is up.
+
+0. **System → Tor → Connect** — or use your own Tor. **AI & Models → Set up built-in AI** — or your own model.
 1. **Organizations** — create your company (tenant) and add its domains, brands, employee e-mails and
    executives. They become watch terms; alerts, risk score and exposure are tracked per organization.
    (The plain **Watchlist** still works for terms that belong to no tenant.)
@@ -245,6 +252,23 @@ untrusted: an indicator the model "finds" that does not appear in the page text 
   `LLAMACPP_MODE` = `server` (your own `llama-server`) · `managed` (the app starts it with the active model) ·
   `embedded` (in-process via `llama-cpp-python`).
 
+### Built-in AI engine
+
+**AI & Models → Set up built-in AI** runs four steps in the background: download the official llama.cpp build
+for your OS (SHA-256 checked against the GitHub release digest) → download a GGUF model from Hugging Face
+(*small* Qwen2.5 1.5B · *balanced* 3B · *strong* 7B, Q4_K_M) → switch to `llamacpp`/`managed` (saved in
+`data/runtime.json`) → start `llama-server` and wait until it answers. The packaged release does this by itself
+on first start when no local AI is available (`AI_AUTO_SETUP=auto`). If an Ollama model named in `.env` is not
+pulled, the best installed Ollama model is used instead of failing with *model not found*.
+
+### Assistant and smart questions
+
+The **assistant** (round button, bottom right) explains how to use every page in your language, reads the setup
+state and tells you the next step — it works without a model too (answers from the built-in guide). The Overview
+shows **suggested questions** built from your data (riskiest alert, leaked accounts, ransomware mentions, actors,
+noisy watch terms …), **✨ AI suggestions** proposed by the model from masked statistics, and **recommendations**
+(missing setup steps, unreviewed alerts, organizations without assets, failed runs, dead targets).
+
 ### Small context windows
 
 Context windows are detected (llama.cpp `/props`, Ollama `/api/show`, LM Studio) or set per provider, and
@@ -317,6 +341,8 @@ All settings live in `.env` (see [`.env.example`](.env.example) for the full lis
 |---|---|---|
 | `TOR_PROXY_PORT` | `9050` | Tor SOCKS port (`9150` for Tor Browser) |
 | `TOR_REQUIRED` | `true` | refuse to crawl unless traffic is verified to leave through Tor |
+| `TOR_MODE`, `TOR_BRIDGE_MODE` | `external`, `auto` | built-in Tor and its bridge fallback (set from *System → Tor*) |
+| `AI_AUTO_SETUP`, `AI_DEFAULT_MODEL` | `auto`, `balanced` | built-in llama.cpp engine and model size |
 | `CRAWL_SCOPE` | `same_site` | `same_site` · `allowed` · `any_onion` |
 | `RETENTION_DAYS` | `90` | purge stored page text after N days (GDPR) |
 | `AI_ROUTING` | `hybrid` | `local` · `cloud` · `hybrid` |

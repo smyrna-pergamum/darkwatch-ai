@@ -1,18 +1,31 @@
-# DarkWatch AI 0.2.0 – Kısa Kullanım Kılavuzu
+# DarkWatch AI 0.3.0 – Kısa Kullanım Kılavuzu
 
 DarkWatch AI (eski adıyla DarkWeb Monitor), yapay zekâ destekli, açık kaynak bir darknet izleme ve tehdit istihbaratı platformudur.
 
 ## Hazır paket (Windows / Linux / macOS, Python gerekmez)
 1. [Releases](https://github.com/smyrna-pergamum/darkwatch-ai/releases) sayfasından işletim sisteminize uygun zip'i indirip bir klasöre çıkarın.
-2. Tor'u başlatın (Tor Browser kullanıyorsanız `.env` içinde `TOR_PROXY_PORT=9150`).
-3. `DarkWebMonitor.exe` dosyasına çift tıklayın. Veritabanı oluşturulur, panel `http://127.0.0.1:8000` adresinde açılır ve tarayıcı kendiliğinden açılır.
-4. Kullanırken konsol penceresini açık tutun; kapatınca program durur. Hata olursa pencere kapanmaz, mesajı okuyabilirsiniz.
-5. Windows SmartScreen uyarı verirse: *Ek bilgi → Yine de çalıştır*.
+2. `DarkWebMonitor.exe` dosyasına çift tıklayın. Veritabanı oluşturulur, panel `http://127.0.0.1:8000` adresinde açılır ve tarayıcı kendiliğinden açılır.
+3. Kullanırken konsol penceresini açık tutun; kapatınca program durur. Hata olursa pencere kapanmaz, mesajı okuyabilirsiniz.
+4. Windows SmartScreen uyarı verirse: *Ek bilgi → Yine de çalıştır*.
+5. Genel Bakış sayfasındaki **"Setup — in this order"** kartındaki adımları sırayla izleyin (aşağıya bakın).
+
+## Çalışma sırası
+Program her açılışta şu sırayla başlar: **veritabanı → Tor → yapay zekâ → zamanlayıcı**. Kurulum da aynı sırayı izler ve Genel Bakış'ta sıradaki adım vurgulanır:
+1. **Tor'a bağlanın**: *System → Tor → Connect*. Program resmî Tor paketini (SHA-256 doğrulamalı) indirip kendi içinde başlatır. *auto* modu önce doğrudan bağlanır; Tor engelliyse snowflake, obfs4 ve meek köprülerini sırayla dener. *Reconnect* Tor'u yeniden başlatır, *New identity* yeni devre ister, *Stop* kendi Tor'unuza (9050 / Tor Browser 9150) geri döner. bridges.torproject.org'dan aldığınız köprüleri *custom* moduyla yapıştırabilirsiniz.
+2. **Yapay zekâ motoru**: *AI & Models → Set up built-in AI*. llama.cpp ve seçtiğiniz GGUF modeli (küçük 1,1 GB · dengeli 2,1 GB · güçlü 4,7 GB) indirilir, kurulur ve başlatılır; her şey bilgisayarınızda çalışır. Hazır pakette ilk açılışta yerel yapay zekâ yoksa bu kendiliğinden yapılır. Ollama'da `.env`'deki model yüklü değilse, yüklü en uygun model kullanılır ("model not found" hatası artık çıkmaz).
+3. **Kurum ve varlıklar** → 4. **Watchlist** → 5. **Targets** → 6. **İlk tarama**.
+
+Tor bağlı değilken zamanlanmış taramalar **başarısız olmaz, bekletilir**; Tor bağlanınca kendiliğinden başlar. Elle başlatılan bir tarama ise ne yapmanız gerektiğini söyleyen bir mesajla reddedilir.
+
+## Yardımcı (asistan) ve akıllı sorular
+- Sağ alttaki yuvarlak düğme **asistanı** açar. Programın nasıl kullanılacağını Türkçe ya da İngilizce sorabilirsiniz (ör. "Tor bağlanmıyor, ne yapmalıyım?"). Asistan yerleşik kılavuza ve kurulumun o anki durumuna bakarak sıradaki adımı söyler; yapay zekâ modeli olmadan da kılavuzdan cevap verir.
+- Genel Bakış'taki **Suggested questions** verilerinizden üretilen sorulardır (en riskli alarm, sızan hesaplar, ransomware sitelerinde anılma, tehdit aktörleri, gürültülü izleme terimleri …). 🔎 olanlar AI analistine, ❔ olanlar asistana gider. **✨ AI suggestions** modelden (yalnızca maskelenmiş istatistiklerle) ek sorular ister.
+- **Recommendations** eksik kurulum adımlarını, incelenmemiş alarmları, varlığı olmayan kurumları, başarısız taramaları ve kapanmış hedefleri listeler; her önerinin yanında ilgili sayfaya giden düğme vardır.
 
 ## Kaynaktan kurulum
 1. `.env.example` dosyasını `.env` olarak kopyalayın.
-2. Tor'u başlatın (daemon: port 9050, Tor Browser: 9150 → `TOR_PROXY_PORT=9150`).
-3. İsteğe bağlı: Ollama kurup `ollama pull qwen2.5:7b` çalıştırın (yerel AI).
+2. Tor: paneldeki *Connect* düğmesi ya da kendi Tor'unuz (daemon: port 9050, Tor Browser: 9150 → `TOR_PROXY_PORT=9150`).
+3. Yapay zekâ: paneldeki *Set up built-in AI* ya da Ollama (`ollama pull qwen2.5:7b`).
 4. `pip install -r requirements.txt` → `python -m darkweb_monitor.cli init` → `python -m darkweb_monitor.cli serve`
 5. Tarayıcıda `http://127.0.0.1:8000` adresini açın.
 

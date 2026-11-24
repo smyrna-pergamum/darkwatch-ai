@@ -43,6 +43,18 @@ Rules:
 - Finish by calling submit_report exactly once with verdict, severity, confidence (0-1),
   summary, evidence [{{claim, source}}], recommended_actions and indicators."""
 
+ASSISTANT_SYSTEM = """You are the built-in assistant of DarkWatch AI, a defensive dark-web monitoring platform.
+You help the user USE the application: explain features step by step, tell them what to do next, and suggest
+good questions to investigate. Answer in the language the user writes in (Turkish or English), short and practical.
+
+- For how-to questions call app_help first and base the answer on it; name the exact page and button.
+- For "what should I do / why does it not work" call app_status and follow the setup order it returns:
+  Tor -> AI engine -> organisation & assets -> watchlist -> targets -> first crawl.
+- For "what should I look at" call suggest_queries and recommend 2-4 concrete questions.
+- You may look at alerts and data with search / get_alert / list_watchlist, but you change nothing.
+- Never suggest buying data, logging in to criminal sites or contacting criminals.
+- You have at most {steps} steps. Finish with a plain-text answer (no tool call)."""
+
 AGENTS = {
     "analyst": AgentInfo(
         "analyst", "SOC analyst", "Investigates alerts with the platform's data and writes a verdict.",
@@ -50,6 +62,10 @@ AGENTS = {
         ["get_alert", "read_page", "summarize_page", "search", "similar_alerts", "find_lessons", "get_indicator", "get_target",
          "list_watchlist", "enrich_indicator", "hibp_check", "add_alert_note", "propose_task",
          "set_alert_status", "add_watch_term", "submit_report"]),
+    "assistant": AgentInfo(
+        "assistant", "Assistant", "Explains how to use the app, checks the setup order and suggests queries.",
+        "primary", ASSISTANT_SYSTEM, 6,
+        ["app_help", "app_status", "suggest_queries", "search", "get_alert", "list_watchlist", "similar_alerts"]),
     "page-reader": AgentInfo(
         "page-reader", "Page reader", "Sub-agent behind summarize_page: map-reduce reading of long pages "
         "with the local model, so the analyst's own context stays small.", "subagent",
@@ -61,6 +77,8 @@ def build(adapter: Adapter, agent_id: str = "analyst", approver=None) -> tuple[A
     info = AGENTS[agent_id]
     reg = ToolRegistry(HookBus())
     register_all(reg)
+    from ..assistant.tools import register as register_assistant
+    register_assistant(reg)
     window = adapter.context_window()
     # scale tool output and page parts to the model window (small models!)
     result_chars = min(settings.ANALYST_TOOL_RESULT_CHARS, tokens_to_chars(int(window * 0.25)))
@@ -75,7 +93,7 @@ def build(adapter: Adapter, agent_id: str = "analyst", approver=None) -> tuple[A
     hooks.on("tools/post-execute", retention_policy(result_chars))
 
     def remind(ctx):
-        if ctx.state.get("reminded") or ctx.state.get("report"):
+        if agent_id != "analyst" or ctx.state.get("reminded") or ctx.state.get("report"):
             return None
         ctx.state["reminded"] = True
         return {"continue": "[harness] You stopped without calling submit_report. Call submit_report now with "
@@ -113,6 +131,8 @@ class RulesAdapter(Adapter):
                 except ValueError:
                     pass
         first = next((m["content"] for m in messages if m["role"] == "user"), "")
+        if any(t.get("name") == "app_help" for t in tools) and not any(t.get("name") == "submit_report" for t in tools):
+            return self._assist(messages, results)
         alert_id = None
         for tok in first.replace("#", " ").split():
             if tok.isdigit():
@@ -128,6 +148,28 @@ class RulesAdapter(Adapter):
             return AssistantTurn("Done.")
         return AssistantTurn("Rule-based assessment.", [{"id": "r9", "name": "submit_report",
                                                          "args": rule_verdict(alert, (results.get("similar_alerts") or [[]])[0])}])
+
+    def _assist(self, messages, results):
+        question = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        called_now = any(m["role"] == "tool" for m in messages[-3:])
+        if not called_now or "app_help" not in results:
+            return AssistantTurn("Looking it up in the guide.", [
+                {"id": "h1", "name": "app_help", "args": {"question": question[:300] or "getting started"}},
+                {"id": "h2", "name": "app_status", "args": {}}])
+        return AssistantTurn(_assist_answer(question, results))
+
+
+def _assist_answer(question: str, results: dict) -> str:
+    topics = ((results.get("app_help") or [{}])[0]).get("topics") or []
+    status = (results.get("app_status") or [{}])[0]
+    lines = []
+    nxt = next((st for st in status.get("setup_checklist") or [] if st.get("next")), None)
+    if nxt:
+        lines.append(f"Next setup step: {nxt['title']} - {nxt['detail']}")
+    for t in topics[:2]:
+        lines.append(f"{t['title']}:\n{t['text']}")
+    lines.append("(Answered from the built-in guide - set up the built-in AI under AI & Models for conversational answers.)")
+    return "\n\n".join(lines)
 
 
 def rule_verdict(alert: dict, similar: list) -> dict:

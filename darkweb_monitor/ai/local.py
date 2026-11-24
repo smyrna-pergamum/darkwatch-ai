@@ -1,12 +1,28 @@
 """Ollama (local) client."""
 from __future__ import annotations
 
+import logging
 import time
 
 import httpx
 
 from config.settings import settings
 from .base import AIError, ai_error, parse_json
+
+logger = logging.getLogger(__name__)
+
+
+_SKIP = ("embed", "bge", "minilm", "nomic", "rerank", "vision", "llava", "whisper")
+_PREFER = ("qwen", "llama", "gemma", "mistral", "phi", "granite", "deepseek")
+
+
+def pick_model(names: list[str]) -> str | None:
+    """Best general chat model among the installed ones (no embedders / coders first)."""
+    def score(n: str) -> tuple:
+        low = n.lower()
+        return (any(k in low for k in _PREFER), "coder" not in low and "code" not in low, "uncensored" not in low)
+    usable = [n for n in names if not any(k in n.lower() for k in _SKIP)]
+    return max(usable, key=score) if usable else None
 
 
 class OllamaClient:
@@ -17,6 +33,8 @@ class OllamaClient:
         self.model = model or settings.OLLAMA_MODEL
         self._avail = (0.0, False)
         self.enabled_override = None
+        self.missing: str | None = None
+        self.substituted: tuple[str, str] | None = None
 
     def context_window(self) -> int:
         from .context import detect_context_window
@@ -31,11 +49,33 @@ class OllamaClient:
             return val
         try:
             r = httpx.get(f"{self.base_url}/api/tags", timeout=4)
-            val = r.status_code == 200
+            val = r.status_code == 200 and self._resolve_model([m.get("name", "") for m in r.json().get("models") or []])
         except Exception:  # noqa: BLE001
             val = False
         self._avail = (time.time(), val)
         return val
+
+    def _resolve_model(self, installed: list[str]) -> bool:
+        """The configured model must be pulled. If it is not, fall back to the
+        best installed chat model instead of failing every call with HTTP 404."""
+        names = [n for n in installed if n]
+        if not names:
+            self.missing = f"no model pulled in Ollama (run: ollama pull {self.model})"
+            return False
+        if self.model in names or f"{self.model}:latest" in names:
+            self.missing = None
+            return True
+        best = pick_model(names)
+        if not best:
+            self.missing = f"model '{self.model}' not found in Ollama"
+            return False
+        logger.warning("Ollama model %s is not installed - using %s instead", self.model, best)
+        self.missing = None
+        self.substituted = (self.model, best)
+        self.model = best
+        if settings.OLLAMA_MODEL == self.substituted[0]:
+            settings.OLLAMA_MODEL = best
+        return True
 
     def generate(self, prompt: str, system: str = "", json_mode: bool = False) -> str:
         payload = {"model": self.model, "prompt": prompt, "system": system, "stream": False,

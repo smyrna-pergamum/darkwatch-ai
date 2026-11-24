@@ -39,6 +39,8 @@ def main() -> int:
            "--specpath", str(ROOT / "build"),
            "--add-data", f"{ROOT / 'dashboard'}{SEP}dashboard",
            "--collect-submodules", "darkweb_monitor", "--collect-submodules", "config"]
+    if osname == "windows" and (ROOT / "packaging" / "icon.ico").exists():
+        cmd += ["--icon", str(ROOT / "packaging" / "icon.ico")]  # exe / taskbar icon
     for h in HIDDEN:
         cmd += ["--hidden-import", h]
     for x in EXCLUDE:
