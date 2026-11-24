@@ -14,9 +14,19 @@ class IntelXSource(Source):
     name = "intelx"
     label = "Intelligence X"
     description = "Search leak, paste and darknet collections for watch terms"
+    category = "leak"
+    kinds = ("domain", "email", "brand")
+    signup = "https://intelx.io/account?tab=developer"
+    fields = [{"key": "INTELX_API_KEY", "label": "API key", "help": "x-key from your Intelligence X account"},
+              {"key": "INTELX_BASE_URL", "label": "API base URL",
+               "help": "Free/academic keys: https://free.intelx.io - paid: https://2.intelx.io"},
+              {"key": "INTELX_MAX_RESULTS", "label": "Max results per term", "type": "int"}]
 
-    def enabled(self) -> bool:
-        return bool(settings.INTELX_API_KEY)
+    def test(self):
+        s = self.session()
+        res = self.get_json(s, settings.INTELX_BASE_URL.rstrip("/") + "/authenticate/info",
+                            headers={"x-key": settings.INTELX_API_KEY}) or {}
+        return {"ok": True, "added": res.get("added"), "paths": len(res.get("paths") or {})}
 
     def search(self, s, term: str) -> list[dict]:
         base = settings.INTELX_BASE_URL.rstrip("/")

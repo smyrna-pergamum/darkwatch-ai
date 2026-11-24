@@ -65,10 +65,36 @@ TOPICS: list[dict] = [
      "body": "High-severity alerts are captured automatically (EVIDENCE_AUTO_SEVERITY); 'Capture evidence' does it by hand. "
              "Evidence is content-addressed (SHA-256) and every action is written to a hash-chained custody log. "
              "'Verify integrity' re-checks file and chain; 'Alert bundle (.zip)' exports manifest + SHA256SUMS."},
-    {"id": "sources", "title": "Intel sources (HIBP, IntelX, ransomware)",
-     "keywords": "source kaynak hibp have i been pwned intelx ransomware leak sızıntı api key anahtar",
-     "body": "Put HIBP_API_KEY, INTELX_API_KEY or RANSOMWARE_LIVE_API_KEY into .env; the sources run on a schedule and "
-             "match against the watchlist. Many APIs block Tor exits, so they go out directly unless EXTERNAL_API_VIA_TOR."},
+    {"id": "sources", "title": "Intel sources and API keys",
+     "keywords": "source kaynak hibp have i been pwned intelx ransomware leak sızıntı api key anahtar configure ayarla "
+                 "leakcheck dehashed hudson rock infostealer stealer leakix shodan github urlscan crt.sh phishing paste "
+                 "custom özel enrichment virustotal abuseipdb otx greynoise manuel",
+     "body": "Intel sources → '⚙ Configure' on each card: paste the API key, switch key-less sources on/off, then "
+             "'Save & test'. Keys are stored locally in data/intel_sources.json (never shown again, only a masked hint); "
+             ".env still works. Sources: Have I Been Pwned, Intelligence X, LeakCheck, DeHashed (breaches); Hudson Rock "
+             "(infostealer infections, free); ransomware.live (leak-site victims, free); Ahmia and other onion search "
+             "engines; crt.sh and urlscan (phishing look-alikes); psbdmp (pastes); LeakIX and Shodan (exposure); GitHub "
+             "code search (leaked secrets). '+ Custom API' connects any JSON API with {term} in the URL. 'Configure "
+             "keys' in Threat feeds sets VirusTotal, AbuseIPDB, OTX, ThreatFox and GreyNoise. 'Search now' searches any "
+             "term without adding it to the watchlist."},
+    {"id": "onion", "title": "Onion search: Ahmia and other engines",
+     "keywords": "ahmia onion tor gizli hidden service arama search engine motor torch haystak tor66 excavator onionland "
+                 "çalışmıyor not working örnek example hedef target",
+     "body": "Ahmia is on by default. Connection 'auto' searches through Tor and falls back to the clearnet mirror ahmia.fi "
+             "when Tor is down ('tor' never leaves Tor; 'clearnet' reveals the search term to ahmia.fi). 'Onion search "
+             "engines' queries Torch, Haystak, Tor66, Excavator and OnionLand through Tor (switch it on and connect Tor). "
+             "Found sites are only proposed as targets. Open 'Onion guide & examples' on the Intel sources page for "
+             "example searches (\"acme.com\", acme vpn access, acme combolist ...) and legitimate onion addresses to "
+             "test the Tor connection."},
+    {"id": "missions", "title": "Natural-language tasks, missions and the DarkWatch AI chat",
+     "keywords": "task görev mission görev otomatik automatic agentic ajan doğal dil natural language schedule zamanla "
+                 "her gün daily monitor izle takip chat sohbet yazış konuş",
+     "body": "AI Tasks → 'Tell DarkWatch AI what to do': write the task in plain language, pick 'Run once' or a "
+             "schedule and press Run. The DarkWatch AI agent then searches the intel sources and onion engines, "
+             "checks collected data, crawls approved targets and summarises. Scheduled tasks are missions (Missions "
+             "tab: Run now, Stop, open last run); their findings are stored as alerts. On the AI Analyst page you can "
+             "simply chat: 'acme.com için tüm kaynaklarda sızıntı ara', 'Ahmia'da \"Acme Corp\" geçen siteleri bul', "
+             "'her gün ransomware sitelerinde Acme'yi izle'. New targets and watch terms still need your approval."},
     {"id": "incidentforge", "title": "IncidentForge integration",
      "keywords": "incidentforge incident olay case export entegrasyon",
      "body": "Set INCIDENTFORGE_URL and INCIDENTFORGE_API_KEY. '→ IncidentForge' on an alert sends one incident with class, "

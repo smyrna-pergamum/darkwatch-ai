@@ -22,9 +22,13 @@ class RansomwareLiveSource(Source):
     label = "Ransomware leak sites"
     description = "Victim posts on ransomware leak sites (ransomware.live)"
     needs_key = False
-
-    def enabled(self) -> bool:
-        return settings.RANSOMWARE_LIVE_ENABLED
+    category = "darkweb"
+    kinds = ("domain", "brand")
+    enable_key = "RANSOMWARE_LIVE_ENABLED"
+    signup = "https://www.ransomware.live/api"
+    sample = ("brand", "hospital")
+    fields = [{"key": "RANSOMWARE_LIVE_API_KEY", "label": "API key (optional, PRO)", "help": "Leave empty for the free API"},
+              {"key": "RANSOMWARE_LIVE_URL", "label": "API URL"}]
 
     def run(self, terms):
         s = self.session()

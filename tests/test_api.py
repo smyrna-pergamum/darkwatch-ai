@@ -106,4 +106,5 @@ def test_status_and_sources(client):
     s = client.get("/api/status").json()
     assert s["ai"]["raw_tasks_provider"] == [] and s["tor"]["enabled"] is False
     names = {x["name"] for x in client.get("/api/sources").json()["sources"]}
-    assert names == {"hibp", "intelx", "ransomware", "ahmia"}
+    assert {"hibp", "intelx", "ransomware", "ahmia", "onionsearch", "hudsonrock", "leakcheck", "dehashed", "crtsh",
+            "urlscan", "psbdmp", "leakix", "shodan", "github"} == names

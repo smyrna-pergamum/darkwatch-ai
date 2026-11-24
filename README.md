@@ -6,7 +6,7 @@
 
 <sub>repository: <code>darkwatch-ai</code> · Python package: <code>darkweb_monitor</code> · formerly "DarkWeb Monitor"</sub>
 
-[![Release](https://img.shields.io/badge/release-v0.3.0-7c5cff)](https://github.com/smyrna-pergamum/darkwatch-ai/releases)
+[![Release](https://img.shields.io/badge/release-v0.4.0-7c5cff)](https://github.com/smyrna-pergamum/darkwatch-ai/releases)
 [![CI](https://github.com/smyrna-pergamum/darkwatch-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/smyrna-pergamum/darkwatch-ai/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -57,7 +57,7 @@ when **your** domains, brands, e-mail addresses or other assets show up.
 
 ### Option 1 — Release bundle (no Python needed)
 
-1. Download `darkweb-monitor-0.3.0-<windows|linux|macos>-<arch>.zip` from
+1. Download `darkweb-monitor-0.4.0-<windows|linux|macos>-<arch>.zip` from
    [Releases](https://github.com/smyrna-pergamum/darkwatch-ai/releases) and extract it.
 2. Double-click `DarkWebMonitor.exe` (Windows) or run `./DarkWebMonitor` (Linux/macOS) with no arguments.
    It creates the database, starts the dashboard on http://127.0.0.1:8000 and opens your browser.
@@ -67,7 +67,7 @@ when **your** domains, brands, e-mail addresses or other assets show up.
    built-in AI engine (set up automatically on first start), then your organization, targets and first crawl.
    The same executable is also the CLI, e.g. `DarkWebMonitor status` or `DarkWebMonitor serve --port 8080`.
 
-   On macOS, if Gatekeeper blocks the unsigned app: `xattr -dr com.apple.quarantine darkweb-monitor-0.3.0`.
+   On macOS, if Gatekeeper blocks the unsigned app: `xattr -dr com.apple.quarantine darkweb-monitor-0.4.0`.
    On Windows, SmartScreen may warn about the unsigned exe: *More info → Run anyway*.
 
 Configuration lives in the `.env` file next to the executable; data is stored in `data/` beside it.
@@ -122,8 +122,9 @@ due while Tor is not connected are **deferred, not failed**, and start automatic
 |---|---|
 | **Collection** | Tor SOCKS5h crawler, GET-only · Tor exit verified before every run · NEWNYM circuit renewal · byte cap and content-type allow-list · `same_site` scope by default · abuse-content safety filter that discards pages unread |
 | **Crawl modes** | **standard** (breadth-first) · **smart** (links ranked by relevance to your watchlist, optional AI re-scoring) · **agent** (an LLM chooses the next in-scope link toward a goal; every decision is logged) |
-| **Intel sources** | Have I Been Pwned · Intelligence X · ransomware leak-site victims (ransomware.live) · Ahmia onion discovery |
-| **Indicators** | Validated extraction (IPv4 with reserved/version filtering, Base58Check & Bech32 BTC, ETH, XMR, v3 onion, hashes, CVE, Telegram, Jabber, credentials with the password **masked**) · first/last seen · CISA KEV & Feodo correlation · enrichment via VirusTotal, AbuseIPDB, OTX, ThreatFox |
+| **Intel sources** | 14 built-in sources, configured in the dashboard (API keys stored locally, masked): Have I Been Pwned · Intelligence X · LeakCheck · DeHashed · Hudson Rock infostealer intel (free) · ransomware leak-site victims (ransomware.live) · **Ahmia** + **more onion search engines** (Torch, Haystak, Tor66, Excavator, OnionLand) · crt.sh and urlscan.io phishing look-alikes · psbdmp pastes · LeakIX · Shodan · GitHub code leaks · **custom JSON APIs** · ad-hoc *Search now* for any term · onion guide with example searches |
+| **Natural-language tasks** | *AI Tasks → Tell DarkWatch AI what to do*: plain-language tasks (Turkish / English) run by an agent with the platform's tools, once or as scheduled **missions**; the AI Analyst page doubles as a chat with DarkWatch AI that searches sources and onion sites, crawls approved targets and sets up monitoring |
+| **Indicators** | Validated extraction (IPv4 with reserved/version filtering, Base58Check & Bech32 BTC, ETH, XMR, v3 onion with checksum, hashes, CVE, Telegram, Jabber, credentials with the password **masked**) · first/last seen · CISA KEV & Feodo correlation · enrichment via VirusTotal, AbuseIPDB, OTX, ThreatFox, GreyNoise |
 | **Alerts** | Deduplicated across runs and sources · new → acknowledged → resolved / false positive · AI triage · Discord, Slack, Teams, webhook, Telegram, e-mail · defanged URLs |
 | **Automation** | Per-target interval or cron schedules · AI/rule planner proposes recrawls, new targets, watch terms and reviews · new targets always need a human |
 | **AI analyst** | Tool-using agent with evidence-based reports and human approval for every state change → [details](#ai-analyst-agent) |
@@ -281,6 +282,33 @@ Context windows are detected (llama.cpp `/props`, Ollama `/api/show`, LM Studio)
 
 > [!TIP]
 > 3–8B instruct models at Q4_K_M work well. Give them at least 8k context (`OLLAMA_NUM_CTX`, `LLAMACPP_CTX`).
+
+## Intel sources, onion search and DarkWatch AI chat
+
+**Intel sources** — every card has **⚙ Configure**: paste an API key (stored in `data/intel_sources.json`,
+file mode 0600, never sent back to the browser), switch key-less sources on or off, **Save & test**. `.env` keeps
+working. **Configure keys** in *Threat feeds & enrichment* sets VirusTotal, AbuseIPDB, OTX, ThreatFox and GreyNoise.
+
+| Category | Sources |
+|---|---|
+| Dark web & onion | ransomware.live · **Ahmia** (Tor, `auto` falls back to ahmia.fi when Tor is down) · **onion search engines** (Torch, Haystak, Tor66, Excavator, OnionLand — editable list) |
+| Breaches | Have I Been Pwned · LeakCheck · DeHashed |
+| Infostealers | Hudson Rock Cavalier (free) |
+| Leaks & pastes | Intelligence X · psbdmp · GitHub code search |
+| Phishing | crt.sh certificate transparency · urlscan.io |
+| Exposure | LeakIX · Shodan |
+| Custom | any JSON API: URL with `{term}` / `{key}`, key header, results path, field mapping |
+
+**Search now** searches any term (not only the watchlist) in all or selected sources; onion results can be proposed
+as targets with one click. **🧅 Onion guide & examples** explains how onion search works, lists example searches and
+legitimate onion addresses to test the Tor connection.
+
+**AI Tasks → Tell DarkWatch AI what to do** takes a plain-language task, e.g.
+*"Her gün acme.com ve \"Acme Corp\" için ransomware ve infostealer kaynaklarında kontrol et"*. The **operator agent**
+plans and runs the tools (`query_sources`, `search_onions`, `search`, `crawl_target`, `propose_task`, …) and reports.
+With a schedule the task becomes a **mission** (Missions tab: run now, stop, open last run); mission findings are
+stored as alerts. On the **AI Analyst** page the same agent answers in a chat. Without a model a rule-based planner
+understands simple Turkish / English requests. New targets and watch terms still need a human.
 
 ## AI analyst agent
 

@@ -5,6 +5,33 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/) (0.x = developer preview: breaking
 changes possible between minor versions).
 
+## [0.4.0] - 2026-11-24 — Intel source settings, onion search, natural-language tasks
+
+### Added
+- **API keys in the dashboard**: *Intel sources → ⚙ Configure* on every card (keys, on/off, URLs), *Save & test*,
+  masked display; stored in `data/intel_sources.json` (0600) and applied on start-up. *Configure keys* for
+  enrichment (VirusTotal, AbuseIPDB, OTX, ThreatFox, GreyNoise).
+- **10 new sources**: onion search engines (Torch, Haystak, Tor66, Excavator, OnionLand), Hudson Rock infostealer
+  intel, LeakCheck, DeHashed, crt.sh look-alike certificates, urlscan.io phishing pages, psbdmp pastes, LeakIX,
+  Shodan, GitHub code leaks; GreyNoise enrichment.
+- **Custom API sources**: any JSON API with `{term}` / `{key}`, key header, results path and field mapping.
+- **Search now**: ad-hoc search of any term in all or selected sources; onion results → proposed targets.
+- **Onion guide & examples**: how onion search works, example searches, legitimate onion addresses to test Tor.
+- **Natural-language tasks and missions** (*AI Tasks → Tell DarkWatch AI what to do*): run once or on a schedule;
+  missions tab with run now / stop / last run; mission findings become alerts. API: `POST /api/missions`,
+  `POST /api/tasks/{id}/run`, `GET /api/tasks?kind=mission`.
+- **DarkWatch AI chat** (operator agent) on the AI Analyst page: searches sources and onion engines, crawls approved
+  targets, creates missions; rule-based planner for Turkish / English when no model is available. The alert analyst
+  can use the source and onion search tools too.
+- v3 onion checksum validation for discovered addresses.
+
+### Fixed
+- **Ahmia did not work**: it was disabled by default with no way to switch it on in the dashboard (the *Run now*
+  button stayed greyed out), failed hard without Tor, and parsed result links poorly. Now on by default, connection
+  `auto` (Tor, then ahmia.fi), anti-bot token re-read per search with one retry, result titles/snippets parsed from
+  the redirect links, clear error messages.
+- Source errors are short and readable ("cannot reach api.x: timed out") instead of urllib3 retry dumps.
+
 ## [0.3.0] - 2026-11-24 — Built-in Tor, built-in AI, assistant
 
 ### Added

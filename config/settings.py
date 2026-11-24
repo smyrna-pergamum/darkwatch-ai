@@ -181,8 +181,36 @@ class Settings(BaseSettings):
     RANSOMWARE_LIVE_ENABLED: bool = True  # public victim list of ransomware leak sites
     RANSOMWARE_LIVE_URL: str = "https://api.ransomware.live/v2"
     RANSOMWARE_LIVE_API_KEY: str = ""
-    AHMIA_ENABLED: bool = False  # onion search for watch terms (via Tor) -> target suggestions
+    AHMIA_ENABLED: bool = True  # onion search for watch terms -> target suggestions
     AHMIA_URL: str = "http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion"
+    AHMIA_CLEARNET_URL: str = "https://ahmia.fi"
+    # tor: only through Tor | auto: Tor, then the clearnet mirror if Tor is down | clearnet: always ahmia.fi
+    AHMIA_MODE: str = "auto"
+    AHMIA_MAX_RESULTS: int = 30
+    # More onion search engines (OnionSearch-style), one per line: name|url-with-{q}
+    ONION_SEARCH_ENABLED: bool = False
+    ONION_SEARCH_ENGINES: str = (
+        "torch|http://torchdeedp3i2jigzjdmfpn5ttjhthh5wbmda2rr3jvqjg5p77c54dqd.onion/search?query={q}\n"
+        "haystak|http://haystak5njsmn2hqkewecpaxetahtwhsbsa64jom2k22z5afxhnpxfid.onion/?q={q}\n"
+        "tor66|http://tor66sewebgixwhcqfnp5inzp5x5uohhdy3kvtnyfxc2e5mxiuh34iid.onion/search?q={q}\n"
+        "excavator|http://2fd6cemt4gmccflhm6imvdfvli3nf7zn6rfrwpsy7uhxrgbypvwf5fad.onion/search?query={q}\n"
+        "onionland|http://3bbad7fauom4d6sgppalyqddsqbf5u5p56b5k5uk2zxsy3d6ey2jobad.onion/search?q={q}")
+    # Infostealer intelligence (free, no key): Hudson Rock Cavalier OSINT API
+    HUDSONROCK_ENABLED: bool = True
+    HUDSONROCK_URL: str = "https://cavalier.hudsonrock.com/api/json/v2/osint-tools"
+    # Certificate transparency (free): new certificates with your brand / domain -> phishing look-alikes
+    CRTSH_ENABLED: bool = True
+    CRTSH_MAX_RESULTS: int = 200
+    # Paste-site dumps (free): psbdmp.ws pastebin dump search
+    PSBDMP_ENABLED: bool = False
+    # Keyed breach / leak / exposure APIs
+    LEAKCHECK_API_KEY: str = ""       # leakcheck.io (v2)
+    DEHASHED_API_KEY: str = ""        # dehashed.com (v2 API key)
+    LEAKIX_API_KEY: str = ""          # leakix.net - exposed services & leaks
+    GITHUB_SEARCH_TOKEN: str = ""            # GitHub code search for leaked secrets mentioning your domains
+    URLSCAN_API_KEY: str = ""         # urlscan.io - phishing pages using your brand / domain
+    SHODAN_API_KEY: str = ""          # Shodan - internet-exposed hosts of your domains
+    GREYNOISE_API_KEY: str = ""       # enrichment: is an IP a scanner / benign service
 
     # --- Threat feeds & enrichment -------------------------------------------
     FEEDS_ENABLED: bool = True
@@ -241,6 +269,8 @@ if _db.startswith("sqlite:///") and not _db.startswith("sqlite:////"):
 if not os.environ.get("DWM_NO_RUNTIME"):  # tests start from .env only
     from .runtime import load as _load_runtime
     _load_runtime()
+    from .intel_store import load as _load_intel
+    _load_intel()
 
 
 def ensure_dirs() -> None:

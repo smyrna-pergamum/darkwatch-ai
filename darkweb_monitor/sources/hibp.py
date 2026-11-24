@@ -25,9 +25,18 @@ class HIBPSource(Source):
     name = "hibp"
     label = "Have I Been Pwned"
     description = "Watchlisted e-mails / verified domains found in known breaches"
+    category = "breach"
+    kinds = ("email", "domain")
+    signup = "https://haveibeenpwned.com/API/Key"
+    sample = ("email", "test@example.com")
+    fields = [{"key": "HIBP_API_KEY", "label": "API key", "help": "hibp-api-key (paid subscription, from 3.95 USD/month)"},
+              {"key": "HIBP_CHECK_DOMAINS", "label": "Check verified domains", "type": "bool",
+               "help": "Domain search only works for domains verified in your HIBP dashboard"}]
 
-    def enabled(self) -> bool:
-        return bool(settings.HIBP_API_KEY)
+    def test(self):
+        s = self.session()
+        res = self.get_json(s, f"{API}/subscription/status", headers={"hibp-api-key": settings.HIBP_API_KEY}) or {}
+        return {"ok": True, "plan": res.get("SubscriptionName"), "rpm": res.get("Rpm")}
 
     def run(self, terms):
         s = self.session()

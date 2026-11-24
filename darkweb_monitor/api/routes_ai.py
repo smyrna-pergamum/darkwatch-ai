@@ -20,6 +20,8 @@ router = APIRouter(dependencies=[Depends(require_key)])
 class StartIn(BaseModel):
     alert_id: Optional[int] = None
     question: Optional[str] = Field(default=None, max_length=4000)
+    # analyst: investigate an alert; operator: chat that searches sources / onions and sets up monitoring
+    agent: Optional[Literal["analyst", "operator"]] = None
 
 
 class MessageIn(BaseModel):
@@ -63,7 +65,10 @@ def start_session(b: StartIn):
     from ..analyst.service import start
     if not b.alert_id and not b.question:
         raise HTTPException(422, "alert_id or question required")
+    agent = b.agent or ("analyst" if b.alert_id else "operator")
     try:
+        if agent == "operator":
+            return {"id": start(question=b.question, trigger="manual", agent="operator")}
         return {"id": start(b.alert_id, b.question, trigger="manual")}
     except ValueError as e:
         raise HTTPException(400, str(e)) from e

@@ -1,4 +1,4 @@
-# DarkWatch AI 0.3.0 – Kısa Kullanım Kılavuzu
+# DarkWatch AI 0.4.0 – Kısa Kullanım Kılavuzu
 
 DarkWatch AI (eski adıyla DarkWeb Monitor), yapay zekâ destekli, açık kaynak bir darknet izleme ve tehdit istihbaratı platformudur.
 
@@ -21,6 +21,25 @@ Tor bağlı değilken zamanlanmış taramalar **başarısız olmaz, bekletilir**
 - Sağ alttaki yuvarlak düğme **asistanı** açar. Programın nasıl kullanılacağını Türkçe ya da İngilizce sorabilirsiniz (ör. "Tor bağlanmıyor, ne yapmalıyım?"). Asistan yerleşik kılavuza ve kurulumun o anki durumuna bakarak sıradaki adımı söyler; yapay zekâ modeli olmadan da kılavuzdan cevap verir.
 - Genel Bakış'taki **Suggested questions** verilerinizden üretilen sorulardır (en riskli alarm, sızan hesaplar, ransomware sitelerinde anılma, tehdit aktörleri, gürültülü izleme terimleri …). 🔎 olanlar AI analistine, ❔ olanlar asistana gider. **✨ AI suggestions** modelden (yalnızca maskelenmiş istatistiklerle) ek sorular ister.
 - **Recommendations** eksik kurulum adımlarını, incelenmemiş alarmları, varlığı olmayan kurumları, başarısız taramaları ve kapanmış hedefleri listeler; her önerinin yanında ilgili sayfaya giden düğme vardır.
+
+## İstihbarat kaynakları ve API anahtarları (Intel sources)
+- Her kartta **⚙ Configure** var: API anahtarını yapıştırın, anahtarsız kaynakları açıp kapatın, **Save & test** ile deneyin. Anahtarlar yalnızca bu bilgisayarda `data/intel_sources.json` dosyasında saklanır ve bir daha gösterilmez (yalnızca son 4 hane). `.env` de çalışmaya devam eder.
+- Kaynaklar: Have I Been Pwned, Intelligence X, LeakCheck, DeHashed (sızıntılar) · Hudson Rock (infostealer bulaşmaları, ücretsiz) · ransomware.live (fidye yazılımı sızıntı siteleri, ücretsiz) · **Ahmia** ve **diğer onion arama motorları** (Torch, Haystak, Tor66, Excavator, OnionLand) · crt.sh ve urlscan (taklit/phishing alan adları) · psbdmp (paste) · LeakIX, Shodan (açık servisler) · GitHub kod araması (sızan parolalar/anahtarlar) · **+ Custom API** ile kendi JSON API'niz.
+- *Threat feeds & enrichment → Configure keys*: VirusTotal, AbuseIPDB, OTX, ThreatFox, GreyNoise.
+- **Search now**: izleme listesine eklemeden herhangi bir terimi (alan adı, e-posta, "marka") tüm ya da seçili kaynaklarda arar. Onion sonuçları tek tıkla **hedef önerisi** olur.
+
+## Onion siteleri ve Ahmia
+- Onion siteleri yalnızca Tor ile açılır; v3 adresleri 56 karakterdir ve sağlama toplamı içerir (program bunu doğrular).
+- Ahmia artık varsayılan olarak açıktır. Bağlantı *auto*: Tor üzerinden arar, Tor bağlı değilse ahmia.fi'ye düşer (*clearnet* arama terimini ahmia.fi'ye gösterir, *tor* asla Tor dışına çıkmaz).
+- **Onion search engines** kartını açarsanız Torch, Haystak, Tor66, Excavator ve OnionLand birlikte aranır (Tor gerekir).
+- **🧅 Onion guide & examples** düğmesi: nasıl çalıştığı, örnek aramalar (`"acme.com"`, `acme vpn access`, `acme combolist` …) ve Tor bağlantısını denemek için meşru onion adresleri (Tor Project, DuckDuckGo, BBC …).
+- Bulunan siteler yalnızca **önerilir**; siz onaylamadan taranmaz. Hiçbir siteye giriş yapmayın, satın almayın, iletişime geçmeyin.
+
+## Doğal dille görevler (AI Tasks) ve DarkWatch AI ile sohbet
+- *AI Tasks → Tell DarkWatch AI what to do* kutusuna görevi yazın, **Run once** ya da bir zamanlama (saatlik, 6 saat, 12 saat, günlük, haftalık) seçip **Run**'a basın. Örnek: *Her gün acme.com ve "Acme Corp" için ransomware ve infostealer kaynaklarında kontrol et.*
+- Görevi **DarkWatch AI** ajanı yürütür: kaynakları ve onion arama motorlarını sorgular, toplanmış verilere bakar, onaylı hedefleri tarar ve özet yazar. Zamanlanmış görevler **mission** olur (*Missions* sekmesi: Run now, Stop, son çalıştırmayı aç); bulguları **Alerts**'e düşer.
+- **AI Analyst** sayfasında doğrudan yazışabilirsiniz: "acme.com için tüm kaynaklarda sızıntı ara", "Ahmia'da \"Acme Corp\" geçen siteleri bul", "hedefleri göster ve 2 numarayı tara", "her gün ransomware sitelerinde Acme'yi izle".
+- Model yoksa kural tabanlı planlayıcı basit Türkçe/İngilizce istekleri anlar; daha serbest sohbet için *AI & Models* altında bir model kurun. Yeni hedefler ve izleme terimleri her zaman sizin onayınızı bekler.
 
 ## Kaynaktan kurulum
 1. `.env.example` dosyasını `.env` olarak kopyalayın.

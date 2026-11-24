@@ -78,6 +78,7 @@ def index():
 
 
 _UI_FILES = {"intel.js": "application/javascript; charset=utf-8", "assist.js": "application/javascript; charset=utf-8",
+             "ops.js": "application/javascript; charset=utf-8",
              "icon.svg": "image/svg+xml", "favicon.ico": "image/x-icon", "icon.png": "image/png"}
 
 
