@@ -679,11 +679,14 @@ def del_watch(wid: int):
 
 # ---------------------------------------------------------------- tasks
 @router.get("/tasks")
-def list_tasks(status: Optional[str] = None, limit: int = Query(100, le=500), offset: int = 0):
+def list_tasks(status: Optional[str] = None, kind: Optional[str] = None, limit: int = Query(100, le=500),
+               offset: int = 0):
     with session_scope() as s:
         q = s.query(Task).order_by(Task.id.desc())
         if status:
             q = q.filter(Task.status.in_(status.split(",")))
+        if kind:
+            q = q.filter(Task.kind.in_(kind.split(",")))
         return _page(q, limit, offset, task_dict)
 
 
@@ -697,6 +700,45 @@ def create_manual_task(t: TaskIn):
     if not tid:
         raise HTTPException(409, "an identical task already exists")
     return {"id": tid}
+
+
+class MissionIn(BaseModel):
+    instruction: str = Field(min_length=5, max_length=2000)
+    title: str = Field(default="", max_length=200)
+    every: str = Field(default="once", max_length=20)   # once | hourly | 6h | 12h | daily | weekly | <minutes>
+    run_now: bool = True
+    priority: Literal["low", "medium", "high"] = "medium"
+
+
+@router.post("/missions", status_code=201)
+def create_mission(b: MissionIn):
+    """Natural-language task: DarkWatch AI (operator agent) carries it out now and/or on a schedule."""
+    from ..tasks import _clean, activate_mission, create_task
+    c = _clean({"kind": "mission", "title": b.title or b.instruction.splitlines()[0][:120],
+                "reason": "Created by the analyst", "priority": b.priority,
+                "payload": {"instruction": b.instruction, "interval_min": b.every}}, None, None)
+    if not c:
+        raise HTTPException(422, "invalid mission")
+    tid = create_task(c, source="user")
+    if not tid:
+        raise HTTPException(409, "an identical mission already exists")
+    try:
+        res = activate_mission(tid, run_now=b.run_now or not c["payload"]["interval_min"])
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"id": tid, **res}
+
+
+@router.post("/tasks/{tid}/run")
+def run_mission_now(tid: int):
+    from ..tasks import start_mission
+    with session_scope() as s:
+        t = s.get(Task, tid)
+        if not t or t.kind != "mission":
+            raise HTTPException(404, "mission not found")
+        if t.status in ("done", "failed", "rejected"):
+            t.status = "approved"  # re-run a finished one-off / resume a cancelled mission
+    return start_mission(tid)
 
 
 @router.post("/tasks/{tid}/approve")
@@ -726,7 +768,123 @@ def list_sources():
                     "finished": _iso(r.finished_at), "queries": r.queries, "findings": r.findings,
                     "alerts": r.alerts, "error": r.error}
                    for r in s.query(SourceRun).order_by(SourceRun.id.desc()).limit(30)]
-    return {"sources": source_status(), "history": history}
+    return {"sources": source_status(), "history": history, "enrichment_fields": _enrichment_fields()}
+
+
+ENRICHMENT_FIELDS = [
+    ("VIRUSTOTAL_API_KEY", "VirusTotal API key", "https://www.virustotal.com/gui/my-apikey"),
+    ("ABUSEIPDB_API_KEY", "AbuseIPDB API key", "https://www.abuseipdb.com/account/api"),
+    ("OTX_API_KEY", "AlienVault OTX key", "https://otx.alienvault.com/api"),
+    ("ABUSECH_AUTH_KEY", "abuse.ch Auth-Key (ThreatFox)", "https://auth.abuse.ch/"),
+    ("GREYNOISE_API_KEY", "GreyNoise community key", "https://viz.greynoise.io/account/api-key"),
+    ("EXTERNAL_API_VIA_TOR", "Send API requests through Tor", ""),
+    ("SOURCES_INTERVAL_MIN", "Run all sources every N minutes", ""),
+]
+
+
+def _enrichment_fields() -> list[dict]:
+    from config.intel_store import FIELDS, public_value
+    return [{"key": k, "label": label, "signup": url, "secret": FIELDS[k], "value": public_value(k),
+             "type": "bool" if isinstance(getattr(settings, k), bool) else
+                     "int" if isinstance(getattr(settings, k), int) else "str"} for k, label, url in ENRICHMENT_FIELDS]
+
+
+class SourceSettingsIn(BaseModel):
+    values: dict[str, Optional[str | int | float | bool]] = Field(default_factory=dict)
+
+
+@router.put("/sources/settings")
+def save_source_settings(b: SourceSettingsIn):
+    from config.intel_store import FIELDS, save
+    vals = {k: v for k, v in b.values.items() if v is not None}
+    for k, v in vals.items():
+        if k not in FIELDS:
+            raise HTTPException(422, f"unknown setting {k}")
+        if isinstance(v, str) and len(v) > 8000:
+            raise HTTPException(422, f"{k} too long")
+    try:
+        saved = save(vals)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(422, str(e)) from e
+    audit("sources.settings", "updated " + ", ".join(saved), actor="api")  # names only, never values
+    return {"saved": saved}
+
+
+@router.post("/sources/{name}/test")
+def test_source(name: str):
+    from ..sources.runner import get_source
+    try:
+        src = get_source(name)
+    except KeyError as e:
+        raise HTTPException(404, "unknown source") from e
+    if not src.enabled():
+        return {"ok": False, "error": "not configured / switched off"}
+    try:
+        return src.test()
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:500]}
+
+
+class CustomSourceIn(BaseModel):
+    name: str = Field(min_length=2, max_length=41)
+    label: str = ""
+    description: str = ""
+    url: str = Field(min_length=8, max_length=500)
+    method: Literal["GET", "POST"] = "GET"
+    body: str = ""
+    header_name: str = ""
+    header_prefix: str = ""
+    api_key: str = ""
+    kinds: list[str] = Field(default_factory=lambda: ["domain", "email", "brand"])
+    results_path: str = ""
+    title_field: str = ""
+    url_field: str = ""
+    id_field: str = ""
+    date_field: str = ""
+    severity: Sev = "medium"
+    enabled: bool = True
+
+
+@router.post("/sources/custom", status_code=201)
+def save_custom_source(b: CustomSourceIn):
+    from config.intel_store import save_custom
+    from ..sources.custom import validate_custom
+    try:
+        entry = validate_custom(b.model_dump())
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    save_custom(entry)
+    audit("sources.custom", f"saved custom:{entry['name']}", actor="api")
+    return {"name": "custom:" + entry["name"]}
+
+
+@router.delete("/sources/custom/{name}")
+def delete_custom_source(name: str):
+    from config.intel_store import delete_custom
+    if not delete_custom(name.removeprefix("custom:")):
+        raise HTTPException(404, "not found")
+    audit("sources.custom", f"deleted {name}", actor="api")
+    return {"ok": True}
+
+
+class QueryIn(BaseModel):
+    terms: list[str] = Field(min_length=1, max_length=10)
+    sources: list[str] = Field(default_factory=list)
+    kind: Optional[Literal["domain", "email", "brand", "keyword", "ip", "crypto"]] = None
+    save: bool = False
+
+
+@router.post("/sources/query")
+def query_sources_now(b: QueryIn):
+    """Ad-hoc search across intel sources - any term, not only the watchlist."""
+    from ..sources.runner import query
+    terms = [t.strip()[:200] for t in b.terms if t.strip()]
+    try:
+        return query(terms, b.sources or None, save=b.save, kind=b.kind)
+    except KeyError as e:
+        raise HTTPException(404, f"unknown source {e}") from e
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
 
 
 @router.post("/sources/{name}/run", status_code=202)

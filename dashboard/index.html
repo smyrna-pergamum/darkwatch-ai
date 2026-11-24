@@ -289,7 +289,13 @@ svg text{fill:var(--dim);font-size:10px}
 
       <!-- TASKS -->
       <section class="view" id="view-tasks">
-        <div class="toolbar"><div class="chips" id="tk-status"><span class="chip on" data-v="proposed">Proposed</span><span class="chip" data-v="approved">Scheduled</span><span class="chip" data-v="done,rejected,failed">History</span></div>
+        <div class="card" style="margin-bottom:16px"><h3>✦ Tell DarkWatch AI what to do <span class="right small dim">plain language · Türkçe / English</span></h3>
+          <textarea id="ms-text" rows="3" placeholder="e.g. Her gün acme.com ve &quot;Acme Corp&quot; için tüm kaynaklarda ve onion arama motorlarında sızıntı ara, yeni onion siteleri hedef olarak öner."></textarea>
+          <div class="toolbar" style="margin:10px 0 0;flex-wrap:wrap"><div class="chips" id="ms-ex"></div><span class="grow"></span>
+            <select id="ms-every" style="min-width:150px"><option value="once">Run once</option><option value="hourly">Every hour</option><option value="6h">Every 6 hours</option><option value="12h">Every 12 hours</option><option value="daily">Every day</option><option value="weekly">Every week</option></select>
+            <button class="primary" id="btn-ms">Run</button></div>
+          <div class="hint">The task is carried out by the DarkWatch AI agent with the platform's tools (intel sources, Ahmia &amp; onion search engines, crawls of approved targets). Recurring tasks become <b>missions</b>; their findings land in Alerts. New .onion targets and watch terms still need your approval.</div></div>
+        <div class="toolbar"><div class="chips" id="tk-status"><span class="chip on" data-v="proposed">Proposed</span><span class="chip" data-v="mission">Missions</span><span class="chip" data-v="approved">Scheduled</span><span class="chip" data-v="done,rejected,failed">History</span></div>
           <span class="grow"></span><span class="small dim" id="tk-auto"></span></div>
         <div id="tk-list"></div>
       </section>
@@ -310,10 +316,18 @@ svg text{fill:var(--dim);font-size:10px}
 
       <!-- SOURCES -->
       <section class="view" id="view-sources">
-        <div class="notice">Most leaked data never sits on a crawlable .onion page. These sources check your <b>watchlist</b> against breach, leak and ransomware-leak-site data and feed findings into the same alert queue. API keys are configured in <span class="mono">.env</span>.</div>
+        <div class="notice info">Most leaked data never sits on a crawlable .onion page. These sources check your <b>watchlist</b> (and any term you search below) against breach, leak, infostealer, ransomware-leak-site, phishing and onion-search data and feed findings into the same alert queue. Enter API keys with <b>Configure</b> on each card — they are stored locally in <span class="mono">data/intel_sources.json</span> and never shown again.</div>
+        <div class="card" style="margin-bottom:16px"><h3>Search now <span class="right small dim">any term — not only the watchlist</span></h3>
+          <div class="toolbar" style="margin:0;flex-wrap:wrap"><input id="sq-terms" class="grow" placeholder="acme.com, ceo@acme.com, &quot;Acme Corp&quot; …">
+            <select id="sq-src" style="min-width:200px"><option value="">All configured sources</option><option value="ahmia,onionsearch">Onion search (Ahmia + engines)</option></select>
+            <label style="display:flex;gap:6px;align-items:center;margin:0"><span class="switch"><input type="checkbox" id="sq-save"><span></span></span>Save as alerts</label>
+            <button class="primary" id="btn-sq">Search</button></div>
+          <div id="sq-out" style="margin-top:12px"></div></div>
+        <div class="toolbar"><div class="chips" id="src-cat"><span class="chip on" data-v="">All</span><span class="chip" data-v="darkweb">Dark web &amp; onion</span><span class="chip" data-v="breach">Breaches</span><span class="chip" data-v="infostealer">Infostealers</span><span class="chip" data-v="leak">Leaks &amp; pastes</span><span class="chip" data-v="phishing">Phishing</span><span class="chip" data-v="exposure">Exposure</span><span class="chip" data-v="custom">Custom</span></div><span class="grow"></span><button id="btn-src-guide">🧅 Onion guide &amp; examples</button><button class="primary" id="btn-src-custom">+ Custom API</button></div>
         <div class="grid cols-3" id="src-cards"></div>
+        <div class="card" style="margin-top:16px" id="onion-guide"></div>
         <div class="grid cols-11" style="margin-top:16px">
-          <div class="card"><h3>Threat feeds &amp; enrichment <button class="sm right" id="btn-feeds">Refresh feeds</button></h3><div id="src-feeds" class="small"></div></div>
+          <div class="card"><h3>Threat feeds &amp; enrichment <span class="right"><button class="sm" id="btn-enrich-cfg">Configure keys</button> <button class="sm" id="btn-feeds">Refresh feeds</button></span></h3><div id="src-feeds" class="small"></div></div>
           <div class="card"><h3>Recent source runs</h3><div id="src-history"></div></div>
         </div>
       </section>
@@ -363,9 +377,9 @@ svg text{fill:var(--dim);font-size:10px}
         <div id="an-head"></div>
         <div id="an-approvals"></div>
         <div class="chat">
-          <div class="card sess-list"><h3>Investigations <button class="sm right" id="btn-an-new">+ New</button></h3><div id="an-sessions"></div></div>
+          <div class="card sess-list"><h3>Conversations <button class="sm right" id="btn-an-new">+ New</button></h3><div id="an-sessions"></div></div>
           <div class="card transcript"><div id="an-title" style="margin-bottom:8px"></div><div class="tr-body" id="an-body"></div>
-            <div class="composer"><textarea id="an-input" placeholder="Ask a follow-up question…"></textarea><button class="primary" id="btn-an-send">Send</button><button id="btn-an-stop" class="danger" style="display:none">Stop</button></div></div>
+            <div class="composer"><textarea id="an-input" placeholder="Ask DarkWatch AI: “acme.com için tüm kaynaklarda sızıntı ara”, “Ahmia'da &quot;Acme Corp&quot; geçen onion siteleri bul”, “her gün ransomware sitelerinde Acme'yi izle” … (Ctrl+Enter)"></textarea><button class="primary" id="btn-an-send">Send</button><button id="btn-an-stop" class="danger" style="display:none">Stop</button></div></div>
         </div>
       </section>
 
@@ -466,7 +480,7 @@ const modeTag = m => `<span class="tag ${m==='agent'?'acc':m==='smart'?'ok':''}"
 
 // ------------------------------------------------------------- navigation
 const TITLES = { overview: ['Overview', 'Threat picture across all sources'], alerts: ['Alerts', 'Triage queue — deduplicated across runs and sources'],
-  tasks: ['AI Tasks', 'Follow-ups proposed by the AI planner and rules'], learning: ['Learning', 'Feedback, lessons, noise rules and regression tests'], analyst: ['AI Analyst', 'Agent investigations with tools, evidence and human approvals'],
+  tasks: ['AI Tasks', 'Natural-language tasks and missions, plus follow-ups proposed by the AI planner'], learning: ['Learning', 'Feedback, lessons, noise rules and regression tests'], analyst: ['AI Analyst', 'Chat with DarkWatch AI — search sources and onion sites, monitor, investigate alerts'],
   aimodels: ['AI & Models', 'Providers (OpenAI-compatible, Ollama, LM Studio, llama.cpp) and local GGUF models'], targets: ['Targets', 'Onion services under monitoring, with schedules and crawl modes'],
   runs: ['Crawl runs', 'Live and past crawls, AI assessments and agent decisions'], sources: ['Intel sources', 'Breach, leak and ransomware-site intelligence'],
   watchlist: ['Watchlist', 'Assets and terms that trigger alerts'], pages: ['Pages', 'Collected content with change detection'],
@@ -630,20 +644,7 @@ async function setAlert(id, body) { try { await patch('/alerts/' + id, body); to
 
 // ------------------------------------------------------------- tasks
 const TASK_IC = { recrawl: '↻', add_target: '◎', add_watch: '☰', review: '👁' };
-async function loadTasks() {
-  const res = await api('/tasks?status=' + encodeURIComponent(state.tasks.status)); loadBadges();
-  const auto = (state.status && state.status.config.auto_approve) || [];
-  $('#tk-auto').textContent = auto.length ? 'Auto-approved kinds: ' + auto.join(', ') + ' · new targets always need you' : 'Every task needs approval';
-  $('#tk-list').innerHTML = res.items.length ? res.items.map(t => `<div class="task"><div class="ic">${TASK_IC[t.kind] || '•'}</div>
-    <div class="body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(t.title)}</b><span class="tag">${esc(t.kind.replace('_', ' '))}</span><span class="tag ${t.priority === 'high' ? 'bad' : ''}">${esc(t.priority)}</span><span class="tag ${t.source === 'ai' ? 'acc' : ''}">${t.source === 'ai' ? '✦ AI' : esc(t.source)}</span>${t.status !== 'proposed' ? statusTag(t.status) : ''}</div>
-      <div class="muted small" style="margin-top:4px">${esc(t.reason)}</div>
-      <div class="small dim mono" style="margin-top:4px;word-break:break-all">${esc(taskPayload(t))}</div>
-      <div class="small dim" style="margin-top:4px">${ago(t.created_at)}${t.due_at ? ' · due ' + ago(t.due_at) : ''}${t.result ? ' · ' + esc(t.result) : ''}${t.run_id ? ` · from <a href="#" data-run="${t.run_id}">run #${t.run_id}</a>` : ''}</div></div>
-    ${t.status === 'proposed' ? `<div class="acts"><button class="sm primary" data-tapprove="${t.id}">Approve</button><button class="sm" data-treject="${t.id}">Reject</button></div>` : t.status === 'approved' ? `<div class="acts"><button class="sm" data-treject="${t.id}">Cancel</button></div>` : ''}</div>`).join('')
-    : empty(state.tasks.status === 'proposed' ? 'No proposals waiting' : 'Nothing here', 'After each crawl the planner suggests recrawls, new targets, watch terms and pages to review.');
-  $$('[data-tapprove]').forEach(b => b.addEventListener('click', async () => { try { const r = await post(`/tasks/${b.dataset.tapprove}/approve`); toast('Task ' + r.status, 'ok'); loadTasks(); } catch (e) { fail(e); } }));
-  $$('[data-treject]').forEach(b => b.addEventListener('click', async () => { try { await post(`/tasks/${b.dataset.treject}/reject`); toast('Task rejected'); loadTasks(); } catch (e) { fail(e); } }));
-}
+// loadTasks(): see /ui/ops.js
 function taskPayload(t) { const p = t.payload || {}; if (t.kind === 'recrawl') return `recrawl target #${t.target_id} in ${p.in_minutes} min`; if (t.kind === 'add_target') return `${defang(p.url)} · ${p.mode}${p.goal ? ' · goal: ' + p.goal : ''}`; if (t.kind === 'add_watch') return `${p.kind}: ${p.value} (${p.severity})`; if (t.kind === 'review') return defang(p.page_url); return JSON.stringify(p); }
 chips('#tk-status', v => { state.tasks.status = v; loadTasks().catch(fail); });
 
@@ -754,18 +755,7 @@ async function openRun(id) {
 }
 
 // ------------------------------------------------------------- sources
-async function loadSources() {
-  const [res] = await Promise.all([api('/sources')]); const s = state.status || await api('/status');
-  const ICON = { hibp: '🔑', intelx: '🗄', ransomware: '☠', ahmia: '🧅' };
-  $('#src-cards').innerHTML = res.sources.map(x => `<div class="card src"><h3><span style="font-size:18px">${ICON[x.name] || '•'}</span> ${esc(x.label)}<span class="right">${x.enabled ? '<span class="tag ok">enabled</span>' : `<span class="tag">${x.needs_key ? 'needs API key' : 'disabled'}</span>`}</span></h3>
-    <div class="small muted">${esc(x.description)}</div>
-    <div class="small dim">${x.last_run ? `Last run ${ago(x.last_run.started)} · ${esc(x.last_run.status)} · ${x.last_run.findings} findings · ${x.last_run.alerts} new alerts${x.last_run.error ? `<div style="color:var(--bad)">${esc(x.last_run.error)}</div>` : ''}` : 'Never run'}</div>
-    <div><button class="sm" data-srun="${x.name}" ${x.enabled ? '' : 'disabled'}>Run now</button></div></div>`).join('');
-  $$('[data-srun]').forEach(b => b.addEventListener('click', async () => { try { await post(`/sources/${b.dataset.srun}/run`); toast(b.dataset.srun + ' started — results appear in Alerts', 'ok'); setTimeout(loadSources, 4000); } catch (e) { fail(e); } }));
-  $('#src-feeds').innerHTML = `<div class="kv"><div>CISA KEV</div><div>Actively exploited CVEs — CVE indicators get the <span class="tag">kev-exploited</span> tag</div><div>Feodo Tracker</div><div>Botnet C2 IPs — matches get <span class="tag">feodo-c2</span></div>
-    <div>Lookups</div><div>${s.enrichment.length ? s.enrichment.map(x => `<span class="tag ok">${esc(x)}</span>`).join('') : '<span class="dim">none configured (VirusTotal, AbuseIPDB, OTX, ThreatFox)</span>'}</div><div>MISP</div><div>${s.misp ? '<span class="tag ok">connected</span>' : '<span class="dim">not configured</span>'}</div></div>`;
-  $('#src-history').innerHTML = res.history.length ? `<table>${res.history.map(h => `<tr><td class="small">${esc(h.source)}</td><td>${statusTag(h.status)}</td><td class="small">${h.findings} findings</td><td class="small dim">${ago(h.started)}</td></tr>`).join('')}</table>` : '<div class="dim small">No runs yet</div>';
-}
+// loadSources(): see /ui/ops.js
 $('#btn-feeds').addEventListener('click', async () => { try { await post('/feeds/refresh'); toast('Feed refresh started', 'ok'); } catch (e) { fail(e); } });
 
 // ------------------------------------------------------------- watchlist
@@ -880,10 +870,10 @@ async function loadAnalyst() {
   $('#an-sessions').innerHTML = sessions.length ? sessions.map(x => `<div class="item ${x.id === an.sid ? 'on' : ''}" data-sid="${x.id}">
       <div class="small" style="display:flex;gap:6px;align-items:center">${x.report ? `<span class="tag ${VERDICT[x.report.verdict]?.[0] || ''}">${esc(VERDICT[x.report.verdict]?.[1] || x.report.verdict)}</span>` : statusTag(x.status)}<span class="dim">#${x.id} · ${esc(x.trigger)}</span></div>
       <div class="trunc" style="max-width:100%;margin-top:3px">${esc(x.title)}</div><div class="small dim">${ago(x.updated_at)} · ${x.steps} steps · ${x.tool_calls} tools</div></div>`).join('')
-    : empty('No investigations yet', 'Open an alert and press “Investigate with AI”.');
+    : empty('No conversations yet', 'Type a request below — e.g. “acme.com için tüm kaynaklarda sızıntı ara” — or open an alert and press “Investigate with AI”.');
   $$('#an-sessions .item').forEach(el => el.addEventListener('click', () => openSession(+el.dataset.sid)));
   if (an.sid) renderSession(an.sid); else if (sessions.length) openSession(sessions[0].id);
-  else { $('#an-title').innerHTML = ''; $('#an-body').innerHTML = empty('Select or start an investigation'); }
+  else { $('#an-title').innerHTML = ''; $('#an-body').innerHTML = (typeof opsWelcome === 'function') ? opsWelcome() : empty('Select or start a conversation'); }
 }
 async function decideApproval(id, d) { try { const r = await post(`/analyst/approvals/${id}/${d}`); toast(`Approval #${id}: ${r.status}`, r.status === 'failed' ? 'err' : 'ok'); loadAnalyst(); loadBadges(); } catch (e) { fail(e); } }
 function openSession(sid) { an.sid = sid; $$('#an-sessions .item').forEach(el => el.classList.toggle('on', +el.dataset.sid === sid)); renderSession(sid); }
@@ -897,9 +887,9 @@ async function renderSession(sid) {
   const html = [];
   for (const e of d.events) {
     const p = e.payload;
-    if (e.type === 'user/message') html.push(p.injected ? `<div class="small dim" style="margin:6px 0">↳ ${esc(p.content)}</div>` : `<div class="msg user"><div class="who">You</div>${esc(p.content)}</div>`);
+    if (e.type === 'user/message') html.push(p.injected ? `<div class="small dim" style="margin:6px 0">↳ ${esc(p.content)}</div>` : `<div class="msg user"><div class="who">You</div>${esc(String(p.content || '').split('\n\n[Context]')[0].split('\n\n[Relevant guide sections]')[0])}</div>`);
     else if (e.type === 'assistant/message') {
-      html.push(`<div class="msg ai">${p.content ? `<div class="who">Analyst</div><div>${esc(p.content)}</div>` : ''}${(p.tool_calls || []).map(c => toolCard(c, results[c.id], appr)).join('')}</div>`);
+      html.push(`<div class="msg ai">${p.content ? `<div class="who">${d.agent === 'operator' ? 'DarkWatch AI' : 'Analyst'}</div><div style="white-space:pre-wrap">${esc(p.content)}</div>` : ''}${(p.tool_calls || []).map(c => toolCard(c, results[c.id], appr)).join('')}</div>`);
     } else if (e.type === 'assistant/attempt') html.push(`<div class="small" style="color:var(--warn);margin:4px 0">⚠ model attempt failed: ${esc(p.error?.code)} ${esc((p.error?.message || '').slice(0, 160))}</div>`);
     else if (e.type === 'context/compacted') html.push(`<details class="tcall"><summary><span class="tag acc">context</span> Compacted ${p.covered_events} earlier events into a checkpoint (${esc(p.reason)})</summary><div class="tb"><pre>${esc(p.summary)}</pre></div></details>`);
     else if (e.type === 'approval/resolved') html.push(`<div class="small" style="margin:6px 0">${p.status === 'approved' ? '✅' : p.status === 'rejected' ? '⛔' : '⚠'} Approval #${p.approval_id} <b>${esc(p.status)}</b> for ${esc(p.tool)} <span class="dim">by ${esc(p.by)}</span></div>`);
@@ -939,8 +929,8 @@ $('#btn-an-send').addEventListener('click', async () => {
 });
 $('#an-input').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('#btn-an-send').click(); });
 $('#btn-an-stop').addEventListener('click', async () => { if (an.sid) { await post(`/analyst/sessions/${an.sid}/cancel`); toast('Stopping after the current step…'); } });
-$('#btn-an-new').addEventListener('click', () => modal('New investigation', `<div class="form"><div><label>Alert ID (optional)</label><input id="ni-alert" type="number" min="1"></div><div><label>Question</label><textarea id="ni-q" placeholder="e.g. Are any of our VPN credentials circulating? Compare with last month's alerts."></textarea></div></div>`,
-  [['Cancel', closeModal], ['Start', async () => { const aid = +$('#ni-alert').value || null, q = $('#ni-q').value.trim() || null; try { const r = await post('/analyst/sessions', { alert_id: aid, question: q }); an.sid = r.id; closeModal(); loadAnalyst(); } catch (e) { fail(e); } }, 'primary']]));
+$('#btn-an-new').addEventListener('click', () => modal('New conversation', `<div class="form"><div><label>Mode</label><select id="ni-agent"><option value="operator">Chat with DarkWatch AI — search sources &amp; onion sites, crawl, monitor</option><option value="analyst">Investigate an alert (SOC analyst)</option></select></div><div><label>Alert ID (for investigations)</label><input id="ni-alert" type="number" min="1"></div><div><label>Request / question</label><textarea id="ni-q" placeholder="e.g. acme.com ve ceo@acme.com için tüm kaynaklarda sızıntı ara. / Are any of our VPN credentials circulating?"></textarea></div><div class="chips" id="ni-ex"></div></div>`,
+  [['Cancel', closeModal], ['Start', async () => { const ag = $('#ni-agent').value, aid = +$('#ni-alert').value || null, q = $('#ni-q').value.trim() || null; try { const r = await post('/analyst/sessions', { alert_id: ag === 'analyst' ? aid : null, question: q, agent: ag }); an.sid = r.id; closeModal(); loadAnalyst(); } catch (e) { fail(e); } }, 'primary']]) || (typeof opsExamples === 'function' && opsExamples('#ni-ex', '#ni-q')));
 async function investigate(alertId) { try { const r = await post('/analyst/sessions', { alert_id: alertId }); an.sid = r.id; closeDrawer(); go('analyst'); toast('Investigation #' + r.id + ' started', 'ok'); } catch (e) { fail(e); } }
 document.addEventListener('click', e => { const a = e.target.closest('[data-alert]'); if (a) { e.preventDefault(); openAlert(+a.dataset.alert).catch(fail); } });
 
@@ -1184,5 +1174,6 @@ window.addEventListener('hashchange', () => { const v = location.hash.slice(1); 
   setInterval(async () => { await loadStatus(); await loadBadges(); if (['overview', 'runs'].includes(state.view) && !$('#drawer').classList.contains('open')) load(state.view); }, 8000);
 })();
 </script>
+<script src="/ui/ops.js"></script>
 </body>
 </html>

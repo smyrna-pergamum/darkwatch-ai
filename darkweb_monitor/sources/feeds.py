@@ -140,13 +140,27 @@ def _threatfox(ioc_type: str, value: str):
     return {"found": True, "malware": sorted({x.get("malware_printable") for x in d.get("data", [])})[:5]}
 
 
+def _greynoise(ioc_type: str, value: str):
+    if ioc_type != "ip" or not settings.GREYNOISE_API_KEY:
+        return None
+    r = _http().get(f"https://api.greynoise.io/v3/community/{value}", headers={"key": settings.GREYNOISE_API_KEY},
+                    timeout=30)
+    if r.status_code == 404:
+        return {"found": False}
+    r.raise_for_status()
+    d = r.json()
+    return {"noise": d.get("noise"), "riot": d.get("riot"), "classification": d.get("classification"),
+            "name": d.get("name")}
+
+
 def enrich(ioc_type: str, value: str) -> dict:
     base_type = ioc_type.split(":", 1)[-1]
     out = {}
     with session_scope() as s:
         out["feeds"] = [{"feed": e.feed, "info": e.info} for e in s.query(FeedEntry).filter_by(
             value=value.upper() if base_type == "cve" else value)]
-    for name, fn in (("virustotal", _vt), ("abuseipdb", _abuseipdb), ("otx", _otx), ("threatfox", _threatfox)):
+    for name, fn in (("virustotal", _vt), ("abuseipdb", _abuseipdb), ("otx", _otx), ("threatfox", _threatfox),
+                     ("greynoise", _greynoise)):
         try:
             res = fn(base_type, value)
             if res is not None:
@@ -158,4 +172,5 @@ def enrich(ioc_type: str, value: str) -> dict:
 
 def lookup_services() -> list[str]:
     return [n for n, k in (("virustotal", settings.VIRUSTOTAL_API_KEY), ("abuseipdb", settings.ABUSEIPDB_API_KEY),
-                           ("otx", settings.OTX_API_KEY), ("threatfox", settings.ABUSECH_AUTH_KEY)) if k]
+                           ("otx", settings.OTX_API_KEY), ("threatfox", settings.ABUSECH_AUTH_KEY),
+                           ("greynoise", settings.GREYNOISE_API_KEY)) if k]

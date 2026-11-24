@@ -42,6 +42,22 @@ def is_valid_onion_v3(host: str) -> bool:
     return bool(_ONION_V3.match(host.lower()))
 
 
+def onion_checksum_ok(host: str) -> bool:
+    """Full v3 check (version byte + SHA3 checksum): filters random 56-char
+    strings that only look like onion addresses."""
+    import base64
+    import hashlib
+    h = host.lower().removesuffix(".onion").split(".")[-1]
+    if len(h) != 56:
+        return False
+    try:
+        raw = base64.b32decode(h.upper())
+    except (ValueError, TypeError):
+        return False
+    pub, chk, ver = raw[:32], raw[32:34], raw[34]
+    return ver == 3 and hashlib.sha3_256(b".onion checksum" + pub + b"\x03").digest()[:2] == chk
+
+
 def same_host(url: str, base: str) -> bool:
     return host_of(url) == host_of(base)
 

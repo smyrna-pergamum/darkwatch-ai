@@ -31,6 +31,7 @@ class Finding:
     indicators: list[tuple[str, str]] = field(default_factory=list)  # (type, value)
     discovered_onions: list[str] = field(default_factory=list)
     published: str = ""
+    extra: dict = field(default_factory=dict)  # structured details (shown for ad-hoc searches)
 
 
 class SourceError(RuntimeError):
@@ -42,9 +43,36 @@ class Source:
     label = "Base"
     description = ""
     needs_key = True
+    category = "breach"            # breach | leak | darkweb | infostealer | exposure | phishing | custom
+    kinds: tuple[str, ...] = ()    # watch-term kinds this source can query
+    enable_key = ""                # boolean setting that switches a key-less source on/off
+    fields: list[dict] = []        # configurable settings shown in the dashboard
+    signup = ""                    # where to get an API key / documentation
+    via_tor = False                # the source talks to .onion services
+    sample = ("domain", "example.com")  # term used by "Test"
 
     def enabled(self) -> bool:
-        return False
+        if self.enable_key:
+            return bool(getattr(settings, self.enable_key, False))
+        from config.intel_store import FIELDS
+        keys = [f["key"] for f in self.fields if FIELDS.get(f["key"])]
+        return bool(keys) and bool(getattr(settings, keys[0], ""))
+
+    def info(self) -> dict:
+        from config.intel_store import FIELDS, public_value
+        return {"name": self.name, "label": self.label, "description": self.description,
+                "needs_key": self.needs_key, "category": self.category, "kinds": list(self.kinds),
+                "enable_key": self.enable_key, "signup": self.signup, "via_tor": self.via_tor,
+                "custom": False,
+                "fields": [{**f, "secret": bool(FIELDS.get(f["key"])), "value": public_value(f["key"])}
+                           for f in self.fields]}
+
+    def test(self) -> dict:
+        """Cheap live check with a harmless sample term."""
+        kind, value = self.sample
+        findings, queries = self.run([WatchTerm(kind, value, "low", None)])
+        return {"ok": True, "queries": queries, "findings": len(findings),
+                "sample": [f.title for f in findings[:3]]}
 
     def run(self, terms: list[WatchTerm]) -> tuple[list[Finding], int]:
         """Return (findings, number_of_queries)."""

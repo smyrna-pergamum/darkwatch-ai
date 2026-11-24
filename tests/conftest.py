@@ -7,7 +7,8 @@ os.environ.update({
     "TOR_REQUIRED": "false", "ALERT_CONSOLE": "false", "ALERT_FILE": "false",
     "ALERT_WEBHOOK_URL": "", "OPENAI_API_KEY": "", "ANTHROPIC_API_KEY": "", "API_KEY": "",
     "CRAWL_DELAY_SEC": "0", "RANSOMWARE_LIVE_ENABLED": "false", "FEEDS_ENABLED": "false",
-    "HIBP_API_KEY": "", "INTELX_API_KEY": "", "AHMIA_ENABLED": "false", "AI_TASK_PLANNER": "true",
+    "HIBP_API_KEY": "", "INTELX_API_KEY": "", "AHMIA_ENABLED": "false", "HUDSONROCK_ENABLED": "false", "CRTSH_ENABLED": "false",
+    "PSBDMP_ENABLED": "false", "ONION_SEARCH_ENABLED": "false", "AI_TASK_PLANNER": "true",
     "AUTO_APPROVE_TASKS": "recrawl", "MISP_URL": "", "TELEGRAM_BOT_TOKEN": "", "SMTP_HOST": "", "INCIDENTFORGE_URL": "",
     "DWM_NO_RUNTIME": "1", "AI_AUTO_SETUP": "false", "TOR_MODE": "external",
 })
@@ -31,6 +32,8 @@ def fresh_db(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "INCIDENTFORGE_URL", "")
     from config import runtime
     monkeypatch.setattr(runtime, "RUNTIME_FILE", tmp_path / "runtime.json")
+    from config import intel_store
+    monkeypatch.setattr(intel_store, "STORE_FILE", tmp_path / "intel_sources.json")
     db.configure(f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
     db.init_db()
     router_mod.set_router(router_mod.AIRouter(local=Unavailable("ollama"), cloud=Unavailable("cloud")))

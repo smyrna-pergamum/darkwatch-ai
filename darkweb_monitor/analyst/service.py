@@ -83,9 +83,11 @@ def _opening(alert_id: int | None, question: str | None) -> tuple[str, list[int]
 
 
 def start(alert_id: int | None = None, question: str | None = None, trigger: str = "manual",
-          agent: str = "analyst") -> int:
+          agent: str = "analyst", mission_id: int | None = None) -> int:
     if agent == "assistant":
         return _start_assistant(question or "", trigger)
+    if agent == "operator":
+        return _start_operator(question or "", trigger, mission_id)
     if not settings.ANALYST_ENABLED:
         raise ValueError("analyst agent is disabled (ANALYST_ENABLED=false)")
     if alert_id:
@@ -117,6 +119,38 @@ def _start_assistant(question: str, trigger: str) -> int:
     log = SessionLog.create("assistant", title=question.splitlines()[0][:200], subject_type="help", trigger=trigger)
     _submit(log.session_id, assistant_opening(question), trigger)
     return log.session_id
+
+
+def _start_operator(question: str, trigger: str, mission_id: int | None = None) -> int:
+    question = question.strip()
+    if not question:
+        raise ValueError("question required")
+    if not settings.ANALYST_ENABLED:
+        raise ValueError("analyst agent is disabled (ANALYST_ENABLED=false)")
+    title = (f"Mission #{mission_id}: " if mission_id else "") + question.splitlines()[0][:180]
+    log = SessionLog.create("operator", title=title, subject_type="mission" if mission_id else "chat",
+                            subject_id=mission_id, trigger=trigger)
+    _submit(log.session_id, operator_opening(question, mission_id), trigger)
+    audit("operator.start", f"session {log.session_id} trigger={trigger} mission={mission_id}", actor=trigger)
+    return log.session_id
+
+
+def operator_opening(question: str, mission_id: int | None = None) -> str:
+    """Request + compact context (configured sources, watchlist size, targets)."""
+    from ..sources.runner import all_sources
+    from ..storage.models import Target, WatchItem
+    srcs = all_sources()
+    with session_scope() as s:
+        watch = [f"{w.kind}:{w.value}" for w in s.query(WatchItem).filter_by(active=True).limit(15)]
+        targets = s.query(Target).count()
+    parts = [question, "", "[Context]",
+             "Configured sources: " + (", ".join(x.name for x in srcs if x.enabled()) or "none"),
+             "Not configured: " + (", ".join(x.name for x in srcs if not x.enabled()) or "-"),
+             f"Watchlist (first 15): {', '.join(watch) or 'empty'}", f"Targets: {targets}"]
+    if mission_id:
+        parts += ["", f"[Scheduled run of mission #{mission_id}] Do the work now; findings are stored as alerts. "
+                      "Do not create new missions. End with a short summary of what is new."]
+    return "\n".join(parts)
 
 
 def assistant_opening(question: str) -> str:
@@ -169,9 +203,10 @@ def _run(session_id: int, text: str, trigger: str, flag: threading.Event) -> Non
             return
         adapter = current_adapter()
         agent_id = (log.row() or {}).get("agent") or "analyst"
-        loop, _ = build(adapter, agent_id=agent_id if agent_id in ("analyst", "assistant") else "analyst",
+        loop, _ = build(adapter, agent_id=agent_id if agent_id in ("analyst", "assistant", "operator") else "analyst",
                         approver=_approver)
         state = {"provider": f"{adapter.name}/{adapter.model}" if adapter.model else adapter.name,
+                 "trigger_kind": (log.row() or {}).get("trigger") or trigger,
                  "page_chunk_chars": max(1200, int(adapter.context_window() * 3.2 * 0.25))}
         outcome = loop.run_turn(log, text, trigger, flag.is_set, state)
         row = log.row()
